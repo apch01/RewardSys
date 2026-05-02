@@ -2,13 +2,14 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { getFamilyPayload, joinFamily, rotateFamilySecret, updateFamilyData } from "@/lib/db";
-import { addActionToData, addChildToData, addCustomActionToData, addRewardToData, deleteChildFromData, deleteCustomActionFromData, deleteRewardFromData, redeemRewardInData, undoActionInData, updateChildInData, updateCustomActionInData, updateRewardInData } from "@/lib/family-data";
-import { Settings } from "@/lib/types";
+import { addActionToData, addChildToData, addCustomActionToData, addRewardToData, deleteChildFromData, deleteCustomActionFromData, deleteRewardFromData, redeemRewardInData, undoActionInData, updateChildInData, updateChildSpellingInData, updateCustomActionInData, updateRewardInData } from "@/lib/family-data";
+import { ChildSpellingData, Settings } from "@/lib/types";
 
 type FamilyRequest =
   | { type: "addChild"; child: { name: string; avatar: string; birthday: string; gender: "boy" | "girl" | "other"; bio?: string } }
   | { type: "updateChild"; id: string; updates: { name: string; avatar: string; birthday: string; gender: "boy" | "girl" | "other"; bio?: string } }
   | { type: "deleteChild"; id: string }
+  | { type: "updateChildSpelling"; childId: string; spellingData: ChildSpellingData }
   | { type: "addAction"; input: { childId: string; title: string; type: "positive" | "negative" | "repair"; points: number; note?: string } }
   | { type: "undoAction"; id: string }
   | { type: "addCustomAction"; input: { title: string; category: "positive" | "negative" | "repair"; points: number; note?: string; presetKey?: string; disabled?: boolean; sortIndex?: number } }
@@ -62,6 +63,8 @@ export async function POST(request: Request) {
           return updateChildInData(data, body.id, body.updates);
         case "deleteChild":
           return deleteChildFromData(data, body.id);
+        case "updateChildSpelling":
+          return updateChildSpellingInData(data, body.childId, body.spellingData);
         case "addAction":
           return addActionToData(data, body.input);
         case "undoAction":

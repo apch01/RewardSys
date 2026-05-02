@@ -5,6 +5,21 @@ export type ChildLevel = {
   minPoints: number;
 };
 
+export type SpellingWord = {
+  text: string;
+  characters: string[];
+  meaning?: string;
+  pinyin?: string;
+  uncertain?: boolean;
+};
+
+export type ChildSpellingData = {
+  title: string;
+  language: "zh";
+  words: SpellingWord[];
+  updatedAt: string;
+};
+
 export type Child = {
   id: string;
   name: string;
@@ -12,6 +27,7 @@ export type Child = {
   birthday: string;
   gender: "boy" | "girl" | "other";
   bio?: string;
+  spellingData?: ChildSpellingData;
   points: number;
   createdAt: string;
 };

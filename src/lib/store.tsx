@@ -3,7 +3,7 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { emptyData } from "./defaults";
-import { Action, ActionType, AppData, Child, CustomAction, FamilyInfo, FamilyPayload, Reward, Settings } from "./types";
+import { Action, ActionType, AppData, Child, ChildSpellingData, CustomAction, FamilyInfo, FamilyPayload, Reward, Settings } from "./types";
 
 type AddActionInput = {
   childId: string;
@@ -21,6 +21,7 @@ type StoreContextValue = {
   addChild: (child: Pick<Child, "name" | "avatar" | "birthday" | "gender" | "bio">) => Promise<void>;
   updateChild: (id: string, updates: Pick<Child, "name" | "avatar" | "birthday" | "gender" | "bio">) => Promise<void>;
   deleteChild: (id: string) => Promise<void>;
+  updateChildSpelling: (childId: string, spellingData: ChildSpellingData) => Promise<void>;
   addAction: (input: AddActionInput) => Promise<Action | undefined>;
   undoAction: (id: string) => Promise<void>;
   addCustomAction: (input: Omit<CustomAction, "id" | "createdAt">) => Promise<void>;
@@ -107,6 +108,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addChild: async (child) => { await requestFamily({ type: "addChild", child }); },
     updateChild: async (id, updates) => { await requestFamily({ type: "updateChild", id, updates }); },
     deleteChild: async (id) => { await requestFamily({ type: "deleteChild", id }); },
+    updateChildSpelling: async (childId, spellingData) => { await requestFamily({ type: "updateChildSpelling", childId, spellingData }); },
     addAction: async (input) => (await requestFamily({ type: "addAction", input })).created,
     undoAction: async (id) => { await requestFamily({ type: "undoAction", id }); },
     addCustomAction: async (input) => { await requestFamily({ type: "addCustomAction", input }); },
