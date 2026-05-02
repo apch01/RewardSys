@@ -133,7 +133,7 @@ export default function ChildProfilePage() {
 
       <section>
         <h2 className="mb-3 text-xl font-black">Reward shop</h2>
-        <div className="grid gap-3 sm:grid-cols-2">{data.rewards.filter((reward) => !reward.redeemed).slice(0, 4).map((reward) => <RewardCard key={reward.id} reward={reward} canRedeem={child.points >= reward.cost} onRedeem={() => redeemReward(reward.id, child.id)} />)}</div>
+        <div className="grid gap-3 sm:grid-cols-2">{data.rewards.filter((reward) => reward.redeemMode === "multiple" || !reward.redeemed).map((reward) => <RewardCard key={reward.id} reward={reward} canRedeem={child.points >= reward.cost} onRedeem={() => redeemReward(reward.id, child.id)} />)}</div>
         {unlocked.length ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{unlocked.length} reward{unlocked.length === 1 ? " is" : "s are"} ready.</p> : null}
       </section>
 

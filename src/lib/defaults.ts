@@ -44,11 +44,11 @@ export const kindnessChallenges = [
 ];
 
 export const defaultRewards: Reward[] = [
-  { id: "reward-story", title: "Choose bedtime story", cost: 50, description: "Pick tonight's story for family reading time.", redeemed: false, createdAt: sampleCreatedAt },
-  { id: "reward-sticker", title: "Small toy / sticker", cost: 100, description: "A small treat for steady growth.", redeemed: false, createdAt: sampleCreatedAt },
-  { id: "reward-screen", title: "Extra 20 min screen time", cost: 150, description: "A parent-approved bonus screen session.", redeemed: false, createdAt: sampleCreatedAt },
-  { id: "reward-activity", title: "Family activity choice", cost: 200, description: "Choose a family game, walk, craft, or baking activity.", redeemed: false, createdAt: sampleCreatedAt },
-  { id: "reward-outing", title: "Special outing", cost: 300, description: "Plan a bigger shared adventure together.", redeemed: false, createdAt: sampleCreatedAt }
+  { id: "reward-story", title: "Choose bedtime story", cost: 50, description: "Pick tonight's story for family reading time.", redeemMode: "multiple", redeemed: false, createdAt: sampleCreatedAt },
+  { id: "reward-sticker", title: "Small toy / sticker", cost: 100, description: "A small treat for steady growth.", redeemMode: "multiple", redeemed: false, createdAt: sampleCreatedAt },
+  { id: "reward-screen", title: "Extra 20 min screen time", cost: 150, description: "A parent-approved bonus screen session.", redeemMode: "multiple", redeemed: false, createdAt: sampleCreatedAt },
+  { id: "reward-activity", title: "Family activity choice", cost: 200, description: "Choose a family game, walk, craft, or baking activity.", redeemMode: "multiple", redeemed: false, createdAt: sampleCreatedAt },
+  { id: "reward-outing", title: "Special outing", cost: 300, description: "Plan a bigger shared adventure together.", redeemMode: "once", redeemed: false, createdAt: sampleCreatedAt }
 ];
 
 export const defaultSettings: Settings = {

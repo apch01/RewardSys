@@ -11,11 +11,13 @@ export default function RewardsPage() {
   const [title, setTitle] = useState("");
   const [costInput, setCostInput] = useState("50");
   const [description, setDescription] = useState("");
+  const [redeemMode, setRedeemMode] = useState<"once" | "multiple">("multiple");
   const [childId, setChildId] = useState(data.children[0]?.id ?? "");
   const [editingRewardId, setEditingRewardId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editCostInput, setEditCostInput] = useState("50");
   const [editDescription, setEditDescription] = useState("");
+  const [editRedeemMode, setEditRedeemMode] = useState<"once" | "multiple">("multiple");
   const [rewardToDelete, setRewardToDelete] = useState<Reward | null>(null);
   const [savingAdd, setSavingAdd] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -35,10 +37,11 @@ export default function RewardsPage() {
     const cost = parsePointValue(costInput, 50);
     setSavingAdd(true);
     try {
-      await addReward({ title: title.trim(), cost, description: description.trim() || "A family-approved reward." });
+      await addReward({ title: title.trim(), cost, description: description.trim() || "A family-approved reward.", redeemMode });
       setTitle("");
       setCostInput("50");
       setDescription("");
+      setRedeemMode("multiple");
     } finally {
       setSavingAdd(false);
     }
@@ -49,6 +52,7 @@ export default function RewardsPage() {
     setEditTitle(reward.title);
     setEditCostInput(String(reward.cost));
     setEditDescription(reward.description);
+    setEditRedeemMode(reward.redeemMode);
   }
 
   async function saveEdit(event: FormEvent) {
@@ -58,7 +62,7 @@ export default function RewardsPage() {
     const editCost = parsePointValue(editCostInput, 50);
     setSavingEdit(true);
     try {
-      await updateReward(editingRewardId, { title: editTitle.trim(), cost: editCost, description: editDescription.trim() || "A family-approved reward." });
+      await updateReward(editingRewardId, { title: editTitle.trim(), cost: editCost, description: editDescription.trim() || "A family-approved reward.", redeemMode: editRedeemMode });
       setEditingRewardId(null);
     } finally {
       setSavingEdit(false);
@@ -129,6 +133,13 @@ export default function RewardsPage() {
               <input type="number" value={editCostInput} min={1} onChange={(event) => setEditCostInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
             </div>
             <textarea value={editDescription} onChange={(event) => setEditDescription(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Description" />
+            <label className="mt-3 block">
+              <span className="text-sm font-extrabold text-slate-500 dark:text-slate-300">Redeem mode</span>
+              <select value={editRedeemMode} onChange={(event) => setEditRedeemMode(event.target.value as "once" | "multiple")} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-black outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900">
+                <option value="multiple">Multiple times</option>
+                <option value="once">Once only</option>
+              </select>
+            </label>
             <div className="mt-3 grid grid-cols-3 gap-2">
               <button disabled={savingEdit} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60"><Check className="h-5 w-5" /> {savingEdit ? "Saving" : "Save"}</button>
               <button type="button" disabled={savingEdit} onClick={() => setEditingRewardId(null)} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-600 disabled:opacity-60 dark:bg-slate-700 dark:text-slate-200"><X className="h-5 w-5" /> Cancel</button>
@@ -145,6 +156,13 @@ export default function RewardsPage() {
           <input type="number" value={costInput} min={1} onChange={(event) => setCostInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
         </div>
         <textarea value={description} onChange={(event) => setDescription(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Description" />
+        <label className="mt-3 block">
+          <span className="text-sm font-extrabold text-slate-500 dark:text-slate-300">Redeem mode</span>
+          <select value={redeemMode} onChange={(event) => setRedeemMode(event.target.value as "once" | "multiple")} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-black outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900">
+            <option value="multiple">Multiple times</option>
+            <option value="once">Once only</option>
+          </select>
+        </label>
         <button disabled={savingAdd} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60"><Plus className="h-5 w-5" /> {savingAdd ? "Adding" : "Add reward"}</button>
       </form>
 

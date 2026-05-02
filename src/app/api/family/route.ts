@@ -14,8 +14,8 @@ type FamilyRequest =
   | { type: "addCustomAction"; input: { title: string; category: "positive" | "negative" | "repair"; points: number; note?: string; presetKey?: string; disabled?: boolean; sortIndex?: number } }
   | { type: "updateCustomAction"; id: string; updates: { title: string; category: "positive" | "negative" | "repair"; points: number; note?: string; presetKey?: string; disabled?: boolean; sortIndex?: number } }
   | { type: "deleteCustomAction"; id: string }
-  | { type: "addReward"; input: { title: string; cost: number; description: string } }
-  | { type: "updateReward"; id: string; updates: { title: string; cost: number; description: string } }
+  | { type: "addReward"; input: { title: string; cost: number; description: string; redeemMode: "once" | "multiple" } }
+  | { type: "updateReward"; id: string; updates: { title: string; cost: number; description: string; redeemMode: "once" | "multiple" } }
   | { type: "deleteReward"; id: string }
   | { type: "redeemReward"; rewardId: string; childId: string }
   | { type: "updateSettings"; updates: Partial<Settings> }

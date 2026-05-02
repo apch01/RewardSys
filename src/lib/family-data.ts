@@ -43,7 +43,12 @@ export function normalizeData(data: Partial<AppData> | null | undefined): AppDat
       bio: child.bio ?? ""
     })),
     actions: data?.actions ?? [],
-    rewards: data?.rewards?.length ? data.rewards : defaultRewards,
+    rewards: data?.rewards?.length
+      ? data.rewards.map((reward) => ({
+        ...reward,
+        redeemMode: reward.redeemMode === "multiple" ? "multiple" : "once"
+      }))
+      : defaultRewards,
     customActions: data?.customActions ?? [],
     settings: {
       ...defaultSettings,
@@ -144,12 +149,12 @@ export function deleteCustomActionFromData(data: AppData, id: string): FamilyMut
   return { data: { ...data, customActions: data.customActions.filter((action) => action.id !== id) } };
 }
 
-export function addRewardToData(data: AppData, input: Pick<Reward, "title" | "cost" | "description">): FamilyMutationResult {
+export function addRewardToData(data: AppData, input: Pick<Reward, "title" | "cost" | "description" | "redeemMode">): FamilyMutationResult {
   const reward: Reward = { id: createId("reward"), ...input, redeemed: false, createdAt: new Date().toISOString() };
   return { data: { ...data, rewards: [reward, ...data.rewards] } };
 }
 
-export function updateRewardInData(data: AppData, id: string, updates: Pick<Reward, "title" | "cost" | "description">): FamilyMutationResult {
+export function updateRewardInData(data: AppData, id: string, updates: Pick<Reward, "title" | "cost" | "description" | "redeemMode">): FamilyMutationResult {
   return { data: { ...data, rewards: data.rewards.map((reward) => reward.id === id ? { ...reward, ...updates } : reward) } };
 }
 
@@ -160,7 +165,8 @@ export function deleteRewardFromData(data: AppData, id: string): FamilyMutationR
 export function redeemRewardInData(data: AppData, rewardId: string, childId: string): FamilyMutationResult {
   const reward = data.rewards.find((item) => item.id === rewardId);
   const child = data.children.find((item) => item.id === childId);
-  if (!reward || !child || reward.redeemed || child.points < reward.cost) return { data };
+  const isOneTimeAndAlreadyRedeemed = reward?.redeemMode !== "multiple" && reward?.redeemed;
+  if (!reward || !child || isOneTimeAndAlreadyRedeemed || child.points < reward.cost) return { data };
 
   const action: Action = {
     id: createId("action"),
@@ -176,7 +182,12 @@ export function redeemRewardInData(data: AppData, rewardId: string, childId: str
     data: {
       ...data,
       children: data.children.map((item) => item.id === childId ? { ...item, points: item.points - reward.cost } : item),
-      rewards: data.rewards.map((item) => item.id === rewardId ? { ...item, redeemed: true, redeemedBy: childId, redeemedAt: new Date().toISOString() } : item),
+      rewards: data.rewards.map((item) => item.id === rewardId ? {
+        ...item,
+        redeemed: item.redeemMode === "multiple" ? false : true,
+        redeemedBy: childId,
+        redeemedAt: new Date().toISOString()
+      } : item),
       actions: [action, ...data.actions]
     }
   };

@@ -31,6 +31,7 @@ export type Reward = {
   title: string;
   cost: number;
   description: string;
+  redeemMode: "once" | "multiple";
   redeemed: boolean;
   redeemedBy?: string;
   redeemedAt?: string;

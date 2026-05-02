@@ -86,11 +86,15 @@ export function todaysNegativePoints(actions: Action[]) {
 }
 
 export function availableRewards(rewards: Reward[], points: number) {
-  return rewards.filter((reward) => !reward.redeemed && reward.cost <= points).sort((a, b) => a.cost - b.cost);
+  return rewards
+    .filter((reward) => (reward.redeemMode === "multiple" || !reward.redeemed) && reward.cost <= points)
+    .sort((a, b) => a.cost - b.cost);
 }
 
 export function nextReward(rewards: Reward[], points: number) {
-  return rewards.filter((reward) => !reward.redeemed && reward.cost > points).sort((a, b) => a.cost - b.cost)[0];
+  return rewards
+    .filter((reward) => (reward.redeemMode === "multiple" || !reward.redeemed) && reward.cost > points)
+    .sort((a, b) => a.cost - b.cost)[0];
 }
 
 export function badgeForActions(actions: Action[]) {
