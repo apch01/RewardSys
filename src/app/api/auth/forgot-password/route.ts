@@ -18,7 +18,9 @@ export async function POST(request: Request) {
       const baseUrl = process.env.NEXTAUTH_URL || new URL(request.url).origin;
       const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
       await sendPasswordResetEmail({ to: email, resetUrl });
-      if (process.env.NODE_ENV !== "production" && !process.env.RESEND_API_KEY) devResetUrl = resetUrl;
+      if (process.env.NODE_ENV !== "production" && (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD)) {
+        devResetUrl = resetUrl;
+      }
     }
 
     return NextResponse.json({ ok: true, devResetUrl });
