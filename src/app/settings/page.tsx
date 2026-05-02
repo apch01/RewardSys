@@ -32,6 +32,7 @@ export default function SettingsPage() {
   const [dailyNegativeLimitDraft, setDailyNegativeLimitDraft] = useState(String(data.settings.dailyNegativeLimit));
   const [perIncidentNegativeLimitDraft, setPerIncidentNegativeLimitDraft] = useState(String(data.settings.perIncidentNegativeLimit));
   const [fairnessMessage, setFairnessMessage] = useState("");
+  const [goalEnabledDraft, setGoalEnabledDraft] = useState(data.settings.familyGoalEnabled);
   const [goalTitleDraft, setGoalTitleDraft] = useState(data.settings.familyGoalTitle);
   const [goalTargetDraft, setGoalTargetDraft] = useState(String(data.settings.familyGoalTarget));
   const [goalMessage, setGoalMessage] = useState("");
@@ -49,9 +50,10 @@ export default function SettingsPage() {
     setAllowNegativeDraft(data.settings.allowNegativeBalance);
     setDailyNegativeLimitDraft(String(data.settings.dailyNegativeLimit));
     setPerIncidentNegativeLimitDraft(String(data.settings.perIncidentNegativeLimit));
+    setGoalEnabledDraft(data.settings.familyGoalEnabled);
     setGoalTitleDraft(data.settings.familyGoalTitle);
     setGoalTargetDraft(String(data.settings.familyGoalTarget));
-  }, [data.settings.allowNegativeBalance, data.settings.dailyNegativeLimit, data.settings.perIncidentNegativeLimit, data.settings.familyGoalTitle, data.settings.familyGoalTarget]);
+  }, [data.settings.allowNegativeBalance, data.settings.dailyNegativeLimit, data.settings.perIncidentNegativeLimit, data.settings.familyGoalEnabled, data.settings.familyGoalTitle, data.settings.familyGoalTarget]);
 
   useEffect(() => {
     const ua = window.navigator.userAgent.toLowerCase();
@@ -158,6 +160,7 @@ export default function SettingsPage() {
     setSavingGoal(true);
     try {
       await updateSettings({
+        familyGoalEnabled: goalEnabledDraft,
         familyGoalTitle: goalTitleDraft.trim() || data.settings.familyGoalTitle,
         familyGoalTarget: parsePositiveNumber(goalTargetDraft, data.settings.familyGoalTarget)
       });
@@ -258,11 +261,12 @@ export default function SettingsPage() {
             <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Set the shared points target shown on the family dashboard.</p>
           </div>
         </div>
+        <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span>Enable family goal on dashboard</span><input type="checkbox" checked={goalEnabledDraft} onChange={(event) => setGoalEnabledDraft(event.target.checked)} className="h-6 w-6" /></label>
         <label className="mt-4 block">
           <span className="text-sm font-extrabold text-slate-500 dark:text-slate-300">Goal title</span>
-          <input value={goalTitleDraft} onChange={(event) => setGoalTitleDraft(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
+          <input value={goalTitleDraft} disabled={!goalEnabledDraft} onChange={(event) => setGoalTitleDraft(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900" />
         </label>
-        <NumberField label="Target points" value={goalTargetDraft} onChange={(event) => setGoalTargetDraft(event.target.value)} />
+        <NumberField label="Target points" value={goalTargetDraft} disabled={!goalEnabledDraft} onChange={(event) => setGoalTargetDraft(event.target.value)} />
         <button type="button" disabled={savingGoal} onClick={saveGoal} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingGoal ? "Saving" : "Save family goal"}</button>
         {goalMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{goalMessage}</p> : null}
       </section>
@@ -311,11 +315,11 @@ export default function SettingsPage() {
   );
 }
 
-function NumberField({ label, value, onChange }: { label: string; value: string; onChange: (event: ChangeEvent<HTMLInputElement>) => void }) {
+function NumberField({ label, value, onChange, disabled }: { label: string; value: string; onChange: (event: ChangeEvent<HTMLInputElement>) => void; disabled?: boolean }) {
   return (
     <label className="mt-4 block">
       <span className="text-sm font-extrabold text-slate-500 dark:text-slate-300">{label}</span>
-      <input type="number" value={value} onChange={onChange} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
+      <input type="number" disabled={disabled} value={value} onChange={onChange} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900" />
     </label>
   );
 }

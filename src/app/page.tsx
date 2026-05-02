@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Gift, Plus, Sparkles, Target, TrendingUp, Users } from "lucide-react";
 import { AddActionModal } from "@/components/AddActionModal";
 import { AddChildModal } from "@/components/AddChildModal";
@@ -9,7 +9,6 @@ import { ChildCard } from "@/components/ChildCard";
 import { EmptyState } from "@/components/EmptyState";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatPill } from "@/components/StatPill";
-import { kindnessChallenges } from "@/lib/defaults";
 import { useKindPoints } from "@/lib/store";
 import { Child } from "@/lib/types";
 import { familyTotal, todayPoints, weeklyPoints } from "@/lib/utils";
@@ -18,9 +17,8 @@ export default function HomePage() {
   const { data } = useKindPoints();
   const [addChildOpen, setAddChildOpen] = useState(false);
   const [actionChild, setActionChild] = useState<Child | undefined>();
-  const challenge = useMemo(() => kindnessChallenges[new Date().getDay() % kindnessChallenges.length], []);
   const total = familyTotal(data.children);
-  const goalProgress = data.settings.familyGoalTarget ? (total / data.settings.familyGoalTarget) * 100 : 0;
+  const goalProgress = data.settings.familyGoalEnabled && data.settings.familyGoalTarget ? (total / data.settings.familyGoalTarget) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -33,10 +31,6 @@ export default function HomePage() {
           </div>
           <span className="grid h-16 w-16 shrink-0 place-items-center rounded-3xl bg-sunshine text-4xl shadow-soft">⭐</span>
         </div>
-        <div className="mt-5 rounded-3xl bg-white/80 p-4 dark:bg-slate-900/70">
-          <div className="flex items-center gap-2 text-sm font-black text-slate-600 dark:text-slate-200"><Sparkles className="h-4 w-4 text-amberSoft" /> Daily kindness challenge</div>
-          <p className="mt-1 text-lg font-black">{challenge}</p>
-        </div>
       </section>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -46,16 +40,18 @@ export default function HomePage() {
         <StatPill icon={Gift} label="Rewards" value={data.rewards.filter((reward) => !reward.redeemed).length} />
       </section>
 
-      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-black">Family teamwork goal</h2>
-            <p className="text-sm font-bold text-slate-500 dark:text-slate-300">{total} / {data.settings.familyGoalTarget} points toward {data.settings.familyGoalTitle}</p>
+      {data.settings.familyGoalEnabled ? (
+        <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-black">Family teamwork goal</h2>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-300">{total} / {data.settings.familyGoalTarget} points toward {data.settings.familyGoalTitle}</p>
+            </div>
+            <Target className="h-6 w-6 text-blueberry dark:text-sky-300" />
           </div>
-          <Target className="h-6 w-6 text-blueberry dark:text-sky-300" />
-        </div>
-        <ProgressBar value={goalProgress} />
-      </section>
+          <ProgressBar value={goalProgress} />
+        </section>
+      ) : null}
 
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">

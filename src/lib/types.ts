@@ -48,6 +48,7 @@ export type Settings = {
   allowNegativeBalance: boolean;
   dailyNegativeLimit: number;
   perIncidentNegativeLimit: number;
+  familyGoalEnabled: boolean;
   familyGoalTitle: string;
   familyGoalTarget: number;
   parentPin: string;

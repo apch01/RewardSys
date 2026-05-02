@@ -55,6 +55,7 @@ export const defaultSettings: Settings = {
   allowNegativeBalance: false,
   dailyNegativeLimit: 30,
   perIncidentNegativeLimit: 20,
+  familyGoalEnabled: true,
   familyGoalTitle: "Family movie night",
   familyGoalTarget: 500,
   parentPin: "",
