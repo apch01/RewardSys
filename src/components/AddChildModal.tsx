@@ -47,7 +47,7 @@ export function AddChildModal({ open, onClose }: { open: boolean; onClose: () =>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Birthday</span>
-            <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} max={new Date().toISOString().slice(0, 10)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" required />
+            <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} max={new Date().toISOString().slice(0, 10)} className="mt-2 h-12 w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" required />
           </label>
           <label className="block">
             <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Gender</span>

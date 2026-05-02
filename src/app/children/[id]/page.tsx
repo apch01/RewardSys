@@ -69,7 +69,7 @@ export default function ChildProfilePage() {
             <input value={avatar} onChange={(event) => setAvatar(event.target.value)} className="mx-auto h-16 w-20 rounded-3xl border border-slate-200 bg-slate-50 text-center text-4xl dark:border-slate-600 dark:bg-slate-900" />
             <input value={name} onChange={(event) => setName(event.target.value)} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center text-xl font-black dark:border-slate-600 dark:bg-slate-900" />
             <div className="grid gap-3 sm:grid-cols-2">
-              <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} max={new Date().toISOString().slice(0, 10)} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center font-black dark:border-slate-600 dark:bg-slate-900" />
+              <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} max={new Date().toISOString().slice(0, 10)} className="h-12 w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center font-black dark:border-slate-600 dark:bg-slate-900" />
               <select value={gender} onChange={(event) => setGender(event.target.value as "boy" | "girl" | "other")} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center font-black dark:border-slate-600 dark:bg-slate-900">
                 <option value="boy">Boy</option>
                 <option value="girl">Girl</option>

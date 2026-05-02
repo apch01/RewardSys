@@ -1,6 +1,6 @@
 "use client";
 
-import { DragEvent, FormEvent, useMemo, useState } from "react";
+import { DragEvent, FormEvent, TouchEvent, useMemo, useState } from "react";
 import { Check, ClipboardList, GripVertical, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { negativeBehaviours, positiveBehaviours, repairActions } from "@/lib/defaults";
 import { useKindPoints } from "@/lib/store";
@@ -45,6 +45,7 @@ export default function ActionsPage() {
   const [editNote, setEditNote] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [touchDropKey, setTouchDropKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const presetActions = useMemo(() => {
@@ -176,6 +177,40 @@ export default function ActionsPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function detectTouchDropKey(event: TouchEvent<HTMLElement>) {
+    const touch = event.touches[0] ?? event.changedTouches[0];
+    if (!touch) return null;
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    const card = element?.closest("[data-action-key]") as HTMLElement | null;
+    return card?.dataset.actionKey ?? null;
+  }
+
+  function handleTouchStart(event: TouchEvent<HTMLElement>, sourceKey: string) {
+    if (busy) return;
+    event.preventDefault();
+    setDraggingKey(sourceKey);
+    setTouchDropKey(sourceKey);
+  }
+
+  function handleTouchMove(event: TouchEvent<HTMLElement>) {
+    if (!draggingKey || busy) return;
+    event.preventDefault();
+    const key = detectTouchDropKey(event);
+    if (key) setTouchDropKey(key);
+  }
+
+  async function handleTouchEnd(event: TouchEvent<HTMLElement>) {
+    if (!draggingKey || busy) return;
+    event.preventDefault();
+    const key = detectTouchDropKey(event) ?? touchDropKey;
+    if (key) {
+      await handleDrop(key);
+    } else {
+      setDraggingKey(null);
+    }
+    setTouchDropKey(null);
   }
 
   async function submit(event: FormEvent) {
@@ -335,16 +370,25 @@ export default function ActionsPage() {
               return (
                 <article
                   key={item.key}
-                  draggable={!busy}
-                  onDragStart={(event: DragEvent<HTMLElement>) => { setDraggingKey(item.key); event.dataTransfer.effectAllowed = "move"; }}
+                  data-action-key={item.key}
                   onDragOver={(event: DragEvent<HTMLElement>) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
                   onDrop={(event: DragEvent<HTMLElement>) => { event.preventDefault(); handleDrop(item.key); }}
                   onDragEnd={() => setDraggingKey(null)}
-                  className={`rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800 ${draggingKey === item.key ? "opacity-50" : ""}`}
+                  className={`select-none rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800 ${draggingKey === item.key ? "opacity-50" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2">
-                      <span className="mt-0.5 grid h-7 w-7 place-items-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300" title="Drag to reorder" aria-label="Drag to reorder">
+                      <span
+                        draggable={!busy}
+                        onDragStart={(event: DragEvent<HTMLElement>) => { setDraggingKey(item.key); event.dataTransfer.effectAllowed = "move"; }}
+                        onTouchStart={(event) => handleTouchStart(event, item.key)}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                        onMouseDown={(event) => event.preventDefault()}
+                        className="mt-0.5 grid h-7 w-7 cursor-grab touch-none place-items-center rounded-lg bg-slate-100 text-slate-500 active:cursor-grabbing dark:bg-slate-700 dark:text-slate-300"
+                        title="Drag to reorder"
+                        aria-label="Drag to reorder"
+                      >
                         <GripVertical className="h-4 w-4" />
                       </span>
                       <div>
