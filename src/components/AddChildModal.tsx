@@ -4,7 +4,13 @@ import { FormEvent, useState } from "react";
 import { X } from "lucide-react";
 import { useKindPoints } from "@/lib/store";
 
-const avatars = ["🌟", "🚀", "🦄", "⚽", "🎨", "🎧", "🌈", "🧩", "📚", "🦋"];
+const avatars = [
+  "👦", "👧", "🧒", "🧑", "👶", "🧢", "🎀", "👑", "🕶️", "🤓",
+  "🌟", "🚀", "🦄", "⚽", "🏀", "🎾", "🏐", "🎯", "🏓", "🥋",
+  "🎨", "🖍️", "🎵", "🎧", "🎤", "🎻", "🥁", "🎮", "🧩", "🧪",
+  "📚", "📝", "🔭", "🧠", "🌈", "🔥", "❄️", "🌸", "🍀", "🌻",
+  "🦋", "🐶", "🐱", "🐼", "🦊", "🐯", "🐸", "🐨", "🐬", "🦖"
+];
 
 export function AddChildModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { addChild } = useKindPoints();
@@ -61,8 +67,10 @@ export function AddChildModal({ open, onClose }: { open: boolean; onClose: () =>
         <label className="mt-4 block text-sm font-extrabold text-slate-600 dark:text-slate-200" htmlFor="child-bio">Bio (optional)</label>
         <textarea id="child-bio" value={bio} onChange={(event) => setBio(event.target.value)} className="mt-2 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="A few words about this child" />
         <div className="mt-4 text-sm font-extrabold text-slate-600 dark:text-slate-200">Avatar</div>
-        <div className="mt-2 grid grid-cols-5 gap-2">
-          {avatars.map((item) => <button key={item} type="button" onClick={() => setAvatar(item)} className={`h-12 rounded-2xl text-2xl ${avatar === item ? "bg-blueberry text-white" : "bg-slate-100 dark:bg-slate-700"}`}>{item}</button>)}
+        <div className="mt-2 overflow-x-auto pb-1">
+          <div className="grid grid-flow-col grid-rows-2 gap-2">
+            {avatars.map((item) => <button key={item} type="button" onClick={() => setAvatar(item)} className={`h-12 w-12 rounded-2xl text-2xl ${avatar === item ? "bg-blueberry text-white" : "bg-slate-100 dark:bg-slate-700"}`}>{item}</button>)}
+          </div>
         </div>
         <button disabled={saving} className="mt-5 h-13 min-h-12 w-full rounded-2xl bg-blueberry px-5 py-3 text-base font-black text-white shadow-soft disabled:opacity-60">{saving ? "Saving" : "Save child"}</button>
       </form>
