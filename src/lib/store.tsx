@@ -1,11 +1,9 @@
 "use client";
 
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
-import { defaultRewards, defaultSettings, sampleData } from "./defaults";
-import { createId, todaysNegativePoints } from "./utils";
-import { Action, ActionType, AppData, Child, CustomAction, Reward, Settings } from "./types";
-
-const STORAGE_KEY = "kindpoints-data-v1";
+import { useSession } from "next-auth/react";
+import { emptyData } from "./defaults";
+import { Action, ActionType, AppData, Child, CustomAction, FamilyInfo, FamilyPayload, Reward, Settings } from "./types";
 
 type AddActionInput = {
   childId: string;
@@ -17,152 +15,107 @@ type AddActionInput = {
 
 type StoreContextValue = {
   data: AppData;
+  family?: FamilyInfo;
   hydrated: boolean;
-  addChild: (child: Pick<Child, "name" | "avatar">) => void;
-  updateChild: (id: string, updates: Pick<Child, "name" | "avatar">) => void;
-  deleteChild: (id: string) => void;
-  addAction: (input: AddActionInput) => Action | undefined;
-  undoAction: (id: string) => void;
-  addCustomAction: (input: Omit<CustomAction, "id" | "createdAt">) => void;
-  addReward: (input: Pick<Reward, "title" | "cost" | "description">) => void;
-  redeemReward: (rewardId: string, childId: string) => void;
-  updateSettings: (updates: Partial<Settings>) => void;
-  resetPeriod: (period: "weekly" | "monthly") => void;
-  clearAll: () => void;
-  exportData: () => string;
+  error?: string;
+  addChild: (child: Pick<Child, "name" | "avatar">) => Promise<void>;
+  updateChild: (id: string, updates: Pick<Child, "name" | "avatar">) => Promise<void>;
+  deleteChild: (id: string) => Promise<void>;
+  addAction: (input: AddActionInput) => Promise<Action | undefined>;
+  undoAction: (id: string) => Promise<void>;
+  addCustomAction: (input: Omit<CustomAction, "id" | "createdAt">) => Promise<void>;
+  addReward: (input: Pick<Reward, "title" | "cost" | "description">) => Promise<void>;
+  updateReward: (id: string, updates: Pick<Reward, "title" | "cost" | "description">) => Promise<void>;
+  deleteReward: (id: string) => Promise<void>;
+  redeemReward: (rewardId: string, childId: string) => Promise<void>;
+  updateSettings: (updates: Partial<Settings>) => Promise<void>;
+  joinFamily: (syncId: string, secret: string) => Promise<void>;
+  rotateSecret: () => Promise<void>;
 };
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
-function normalizeData(data: AppData): AppData {
-  return {
-    children: data.children ?? [],
-    actions: data.actions ?? [],
-    rewards: data.rewards?.length ? data.rewards : defaultRewards,
-    customActions: data.customActions ?? [],
-    settings: { ...defaultSettings, ...(data.settings ?? {}), defaultPointValues: { ...defaultSettings.defaultPointValues, ...(data.settings?.defaultPointValues ?? {}) } }
-  };
-}
-
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData>(sampleData);
+  const { status } = useSession();
+  const [data, setData] = useState<AppData>(emptyData);
+  const [family, setFamily] = useState<FamilyInfo | undefined>();
   const [hydrated, setHydrated] = useState(false);
+  const [error, setError] = useState<string | undefined>();
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setData(normalizeData(JSON.parse(saved) as AppData));
-      } catch {
-        setData(sampleData);
-      }
+    if (status === "loading") return;
+    if (status === "unauthenticated") {
+      setData(emptyData);
+      setFamily(undefined);
+      setHydrated(true);
+      return;
     }
-    setHydrated(true);
-  }, []);
+
+    let cancelled = false;
+    setHydrated(false);
+    fetch("/api/family")
+      .then(async (response) => {
+        if (!response.ok) throw new Error((await response.json() as { error?: string }).error ?? "Could not load family data.");
+        return response.json() as Promise<FamilyPayload>;
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setData(payload.data);
+        setFamily(payload.family);
+        setError(undefined);
+      })
+      .catch((caught) => {
+        if (cancelled) return;
+        setError(caught instanceof Error ? caught.message : "Could not load family data.");
+      })
+      .finally(() => {
+        if (!cancelled) setHydrated(true);
+      });
+
+    return () => { cancelled = true; };
+  }, [status]);
 
   useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     document.documentElement.classList.toggle("dark", data.settings.darkMode);
-  }, [data, hydrated]);
+  }, [data.settings.darkMode]);
+
+  async function requestFamily(body: object) {
+    const response = await fetch("/api/family", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const payload = await response.json() as (FamilyPayload & { created?: Action; error?: string });
+    if (!response.ok) {
+      const message = payload.error ?? "Could not update family data.";
+      setError(message);
+      throw new Error(message);
+    }
+    setData(payload.data);
+    setFamily(payload.family);
+    setError(undefined);
+    return payload;
+  }
 
   const value = useMemo<StoreContextValue>(() => ({
     data,
+    family,
     hydrated,
-    addChild: (child) => {
-      const newChild: Child = { id: createId("child"), points: 0, createdAt: new Date().toISOString(), ...child };
-      setData((current) => ({ ...current, children: [...current.children, newChild] }));
-    },
-    updateChild: (id, updates) => {
-      setData((current) => ({ ...current, children: current.children.map((child) => child.id === id ? { ...child, ...updates } : child) }));
-    },
-    deleteChild: (id) => {
-      setData((current) => ({
-        ...current,
-        children: current.children.filter((child) => child.id !== id),
-        actions: current.actions.filter((action) => action.childId !== id)
-      }));
-    },
-    addAction: (input) => {
-      let created: Action | undefined;
-      setData((current) => {
-        const child = current.children.find((item) => item.id === input.childId);
-        if (!child) return current;
-
-        let points = input.points;
-        if (input.type === "negative") {
-          const incidentCap = Math.abs(current.settings.perIncidentNegativeLimit);
-          points = -Math.min(Math.abs(points), incidentCap);
-          const usedToday = todaysNegativePoints(current.actions.filter((action) => action.childId === input.childId));
-          const remaining = Math.max(current.settings.dailyNegativeLimit - usedToday, 0);
-          points = remaining === 0 ? 0 : -Math.min(Math.abs(points), remaining);
-        }
-
-        const nextPoints = current.settings.allowNegativeBalance ? child.points + points : Math.max(0, child.points + points);
-        const appliedPoints = nextPoints - child.points;
-        created = { id: createId("action"), ...input, points: appliedPoints, createdAt: new Date().toISOString() };
-
-        return {
-          ...current,
-          children: current.children.map((item) => item.id === child.id ? { ...item, points: nextPoints } : item),
-          actions: [created, ...current.actions]
-        };
-      });
-      return created;
-    },
-    undoAction: (id) => {
-      setData((current) => {
-        const action = current.actions.find((item) => item.id === id);
-        if (!action) return current;
-        return {
-          ...current,
-          children: current.children.map((child) => child.id === action.childId ? { ...child, points: Math.max(0, child.points - action.points) } : child),
-          actions: current.actions.filter((item) => item.id !== id)
-        };
-      });
-    },
-    addCustomAction: (input) => {
-      const points = input.category === "negative" ? -Math.abs(input.points) : Math.abs(input.points);
-      setData((current) => ({ ...current, customActions: [{ id: createId("custom"), ...input, points, createdAt: new Date().toISOString() }, ...current.customActions] }));
-    },
-    addReward: (input) => {
-      const reward: Reward = { id: createId("reward"), ...input, redeemed: false, createdAt: new Date().toISOString() };
-      setData((current) => ({ ...current, rewards: [reward, ...current.rewards] }));
-    },
-    redeemReward: (rewardId, childId) => {
-      setData((current) => {
-        const reward = current.rewards.find((item) => item.id === rewardId);
-        const child = current.children.find((item) => item.id === childId);
-        if (!reward || !child || reward.redeemed || child.points < reward.cost) return current;
-        const action: Action = {
-          id: createId("action"),
-          childId,
-          title: `Redeemed reward: ${reward.title}`,
-          type: "repair",
-          points: -reward.cost,
-          note: "Reward redeemed from the shop.",
-          createdAt: new Date().toISOString()
-        };
-        return {
-          ...current,
-          children: current.children.map((item) => item.id === childId ? { ...item, points: item.points - reward.cost } : item),
-          rewards: current.rewards.map((item) => item.id === rewardId ? { ...item, redeemed: true, redeemedBy: childId, redeemedAt: new Date().toISOString() } : item),
-          actions: [action, ...current.actions]
-        };
-      });
-    },
-    updateSettings: (updates) => {
-      setData((current) => ({ ...current, settings: { ...current.settings, ...updates, defaultPointValues: { ...current.settings.defaultPointValues, ...(updates.defaultPointValues ?? {}) } } }));
-    },
-    resetPeriod: () => {
-      setData((current) => ({ ...current, children: current.children.map((child) => ({ ...child, points: 0 })), actions: [] }));
-    },
-    clearAll: () => {
-      setData({ ...sampleData, children: [], actions: [], rewards: defaultRewards, customActions: [] });
-      window.localStorage.removeItem(STORAGE_KEY);
-    },
-    exportData: () => JSON.stringify(data, null, 2)
-  }), [data, hydrated]);
+    error,
+    addChild: async (child) => { await requestFamily({ type: "addChild", child }); },
+    updateChild: async (id, updates) => { await requestFamily({ type: "updateChild", id, updates }); },
+    deleteChild: async (id) => { await requestFamily({ type: "deleteChild", id }); },
+    addAction: async (input) => (await requestFamily({ type: "addAction", input })).created,
+    undoAction: async (id) => { await requestFamily({ type: "undoAction", id }); },
+    addCustomAction: async (input) => { await requestFamily({ type: "addCustomAction", input }); },
+    addReward: async (input) => { await requestFamily({ type: "addReward", input }); },
+    updateReward: async (id, updates) => { await requestFamily({ type: "updateReward", id, updates }); },
+    deleteReward: async (id) => { await requestFamily({ type: "deleteReward", id }); },
+    redeemReward: async (rewardId, childId) => { await requestFamily({ type: "redeemReward", rewardId, childId }); },
+    updateSettings: async (updates) => { await requestFamily({ type: "updateSettings", updates }); },
+    joinFamily: async (syncId, secret) => { await requestFamily({ type: "joinFamily", syncId, secret }); },
+    rotateSecret: async () => { await requestFamily({ type: "rotateSecret" }); }
+  }), [data, family, hydrated, error]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

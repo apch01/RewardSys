@@ -1,5 +1,15 @@
 # KindPoints
 
+## Auth and Family Sync
+
+KindPoints uses NextAuth OAuth sign-in with Google, Apple, and Facebook. The first parent to sign in creates a family automatically and receives a sync ID plus secret key in Settings. A second parent signs in with their own OAuth account, opens Settings, and joins the same family with that sync ID and secret key.
+
+Email/password signup and login are also supported. Forgot-password links are stored as hashed reset tokens and expire after 1 hour. Set `RESEND_API_KEY` and `EMAIL_FROM` to send reset emails in production; without Resend, local development logs and displays the reset link for testing.
+
+Only the first parent can view or revoke the family secret. Revoking replaces the secret key for future joins; already connected parents remain connected.
+
+Required environment variables are listed in `.env.example`. In Vercel, set the same values in Project Settings. The Neon tables are created automatically the first time the app handles an authenticated request.
+
 KindPoints is a mobile-first Family Reward Points app for parents to track positive behaviours, corrections, repair actions, rewards, and a shared family teamwork goal. It uses Next.js App Router, TypeScript, Tailwind CSS, and `localStorage` for MVP persistence.
 
 ## Features

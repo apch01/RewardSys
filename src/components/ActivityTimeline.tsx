@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { RotateCcw } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useKindPoints } from "@/lib/store";
 import { Action, Child } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,11 @@ import { cn } from "@/lib/utils";
 export function ActivityTimeline({ actions, childrenList, limit }: { actions: Action[]; childrenList: Child[]; limit?: number }) {
   const { undoAction } = useKindPoints();
   const visible = [...actions].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, limit ?? actions.length);
+
+  function removeAction(action: Action) {
+    if (!window.confirm(`Remove "${action.title}" from the activity history and reverse its points?`)) return;
+    undoAction(action.id);
+  }
 
   if (!visible.length) return <div className="rounded-3xl bg-white p-5 text-center font-bold text-slate-500 shadow-soft dark:bg-slate-800 dark:text-slate-300">No actions yet. Start by noticing one kind moment.</div>;
 
@@ -29,7 +34,7 @@ export function ActivityTimeline({ actions, childrenList, limit }: { actions: Ac
               </div>
               <div className="flex flex-col items-end gap-2">
                 <span className={cn("rounded-full px-3 py-1 text-sm font-black", action.points < 0 ? "bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" : "bg-mint text-leaf dark:bg-emerald-950 dark:text-emerald-200")}>{action.points > 0 ? "+" : ""}{action.points}</span>
-                <button onClick={() => undoAction(action.id)} className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-200" aria-label="Undo action"><RotateCcw className="h-4 w-4" /></button>
+                <button onClick={() => removeAction(action)} className="grid h-10 w-10 place-items-center rounded-full bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" aria-label="Remove action"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
           </div>

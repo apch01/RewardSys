@@ -38,24 +38,24 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
 
   const needsPin = Boolean(data.settings.parentPin) && !unlocked;
 
-  function record(template: BehaviourTemplate) {
+  async function record(template: BehaviourTemplate) {
     if (!child) return;
-    const created = addAction({ childId: child.id, title: template.title, type: template.type, points: template.points, note: note.trim() || undefined });
+    const created = await addAction({ childId: child.id, title: template.title, type: template.type, points: template.points, note: note.trim() || undefined });
     setLastPoints(created?.points ?? null);
     setNote("");
   }
 
-  function submitCustom(event: FormEvent) {
+  async function submitCustom(event: FormEvent) {
     event.preventDefault();
     if (!child) return;
     if (!customTitle.trim()) return;
     const points = tab === "negative" ? -Math.abs(customPoints) : Math.abs(customPoints);
-    addAction({ childId: child.id, title: customTitle.trim(), type: tab, points, note: note.trim() || undefined });
-    if (saveCustom) addCustomAction({ title: customTitle.trim(), category: tab, points, note: note.trim() || undefined });
+    const created = await addAction({ childId: child.id, title: customTitle.trim(), type: tab, points, note: note.trim() || undefined });
+    if (saveCustom) await addCustomAction({ title: customTitle.trim(), category: tab, points, note: note.trim() || undefined });
     setCustomTitle("");
     setNote("");
     setSaveCustom(false);
-    setLastPoints(points);
+    setLastPoints(created?.points ?? points);
   }
 
   return (

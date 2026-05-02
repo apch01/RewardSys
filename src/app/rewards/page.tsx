@@ -1,24 +1,49 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Gift, Plus } from "lucide-react";
+import { Check, Gift, Plus, X } from "lucide-react";
 import { RewardCard } from "@/components/RewardCard";
 import { useKindPoints } from "@/lib/store";
+import { Reward } from "@/lib/types";
 
 export default function RewardsPage() {
-  const { data, addReward, redeemReward } = useKindPoints();
+  const { data, addReward, updateReward, deleteReward, redeemReward } = useKindPoints();
   const [title, setTitle] = useState("");
   const [cost, setCost] = useState(50);
   const [description, setDescription] = useState("");
   const [childId, setChildId] = useState(data.children[0]?.id ?? "");
+  const [editingRewardId, setEditingRewardId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCost, setEditCost] = useState(50);
+  const [editDescription, setEditDescription] = useState("");
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
     if (!title.trim()) return;
-    addReward({ title: title.trim(), cost, description: description.trim() || "A family-approved reward." });
+    await addReward({ title: title.trim(), cost, description: description.trim() || "A family-approved reward." });
     setTitle("");
     setCost(50);
     setDescription("");
+  }
+
+  function startEdit(reward: Reward) {
+    setEditingRewardId(reward.id);
+    setEditTitle(reward.title);
+    setEditCost(reward.cost);
+    setEditDescription(reward.description);
+  }
+
+  async function saveEdit(event: FormEvent) {
+    event.preventDefault();
+    if (!editingRewardId || !editTitle.trim()) return;
+    await updateReward(editingRewardId, { title: editTitle.trim(), cost: editCost, description: editDescription.trim() || "A family-approved reward." });
+    setEditingRewardId(null);
+  }
+
+  async function removeReward(reward: Reward) {
+    if (!window.confirm(`Delete "${reward.title}" from the reward shop?`)) return;
+    await deleteReward(reward.id);
+    if (editingRewardId === reward.id) setEditingRewardId(null);
   }
 
   const selectedChild = data.children.find((child) => child.id === childId) ?? data.children[0];
@@ -49,7 +74,20 @@ export default function RewardsPage() {
 
       <section>
         <h2 className="mb-3 text-xl font-black">Reward shop</h2>
-        <div className="grid gap-3 sm:grid-cols-2">{data.rewards.map((reward) => <RewardCard key={reward.id} reward={reward} canRedeem={Boolean(selectedChild && selectedChild.points >= reward.cost)} onRedeem={selectedChild ? () => redeemReward(reward.id, selectedChild.id) : undefined} />)}</div>
+        <div className="grid gap-3 sm:grid-cols-2">{data.rewards.map((reward) => editingRewardId === reward.id ? (
+          <form key={reward.id} onSubmit={saveEdit} className="rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800">
+            <h3 className="font-black">Edit reward</h3>
+            <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_110px]">
+              <input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Reward title" />
+              <input type="number" value={editCost} min={1} onChange={(event) => setEditCost(Number(event.target.value))} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
+            </div>
+            <textarea value={editDescription} onChange={(event) => setEditDescription(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Description" />
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Check className="h-5 w-5" /> Save</button>
+              <button type="button" onClick={() => setEditingRewardId(null)} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-600 dark:bg-slate-700 dark:text-slate-200"><X className="h-5 w-5" /> Cancel</button>
+            </div>
+          </form>
+        ) : <RewardCard key={reward.id} reward={reward} canRedeem={Boolean(selectedChild && selectedChild.points >= reward.cost)} onRedeem={selectedChild ? () => redeemReward(reward.id, selectedChild.id) : undefined} onEdit={() => startEdit(reward)} onDelete={() => removeReward(reward)} />)}</div>
       </section>
     </div>
   );

@@ -65,6 +65,19 @@ export type AppData = {
   settings: Settings;
 };
 
+export type FamilyInfo = {
+  id: string;
+  syncId: string;
+  syncSecret?: string;
+  isCreator: boolean;
+  createdAt: string;
+};
+
+export type FamilyPayload = {
+  data: AppData;
+  family: FamilyInfo;
+};
+
 export type BehaviourTemplate = {
   title: string;
   type: ActionType;

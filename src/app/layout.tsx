@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
-import { StoreProvider } from "@/lib/store";
 import { AppShell } from "@/components/AppShell";
+import { Providers } from "@/components/Providers";
 
 const nunito = Nunito({ subsets: ["latin"], display: "swap" });
 
@@ -27,9 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={nunito.className}>
-        <StoreProvider>
+        <Providers>
           <AppShell>{children}</AppShell>
-        </StoreProvider>
+        </Providers>
       </body>
     </html>
   );

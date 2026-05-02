@@ -84,3 +84,11 @@ export const sampleData: AppData = {
   customActions: [],
   settings: defaultSettings
 };
+
+export const emptyData: AppData = {
+  children: [],
+  actions: [],
+  rewards: defaultRewards,
+  customActions: [],
+  settings: defaultSettings
+};
