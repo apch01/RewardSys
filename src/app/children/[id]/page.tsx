@@ -104,7 +104,7 @@ export default function ChildProfilePage() {
 
       <section>
         <h2 className="mb-3 text-xl font-black">Activity timeline</h2>
-        <ActivityTimeline actions={childActions} childrenList={data.children} />
+        <ActivityTimeline actions={childActions} childrenList={data.children} limit={10} allowTypeFilter />
       </section>
 
       <AddActionModal open={actionOpen} child={child} onClose={() => setActionOpen(false)} />

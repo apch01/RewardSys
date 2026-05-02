@@ -2,17 +2,36 @@
 
 import { format } from "date-fns";
 import { AlertTriangle, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useKindPoints } from "@/lib/store";
-import { Action, Child } from "@/lib/types";
+import { Action, ActionType, Child } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export function ActivityTimeline({ actions, childrenList, limit }: { actions: Action[]; childrenList: Child[]; limit?: number }) {
+type TimelineProps = {
+  actions: Action[];
+  childrenList: Child[];
+  limit?: number;
+  allowChildFilter?: boolean;
+  allowTypeFilter?: boolean;
+};
+
+export function ActivityTimeline({ actions, childrenList, limit, allowChildFilter = false, allowTypeFilter = false }: TimelineProps) {
   const { undoAction } = useKindPoints();
   const [actionToRemove, setActionToRemove] = useState<Action | null>(null);
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState("");
-  const visible = [...actions].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, limit ?? actions.length);
+  const [selectedChildId, setSelectedChildId] = useState("all");
+  const [selectedType, setSelectedType] = useState<"all" | ActionType>("all");
+  const pageSize = Math.max(1, limit ?? actions.length);
+  const [visibleCount, setVisibleCount] = useState(pageSize);
+  const sortedActions = useMemo(() => [...actions].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)), [actions]);
+  const filteredActions = useMemo(() => sortedActions.filter((action) => {
+    const childMatch = selectedChildId === "all" || action.childId === selectedChildId;
+    const typeMatch = selectedType === "all" || action.type === selectedType;
+    return childMatch && typeMatch;
+  }), [selectedChildId, selectedType, sortedActions]);
+  const visible = filteredActions.slice(0, visibleCount);
+  const canShowMore = visibleCount < filteredActions.length;
   const childForAction = actionToRemove ? childrenList.find((item) => item.id === actionToRemove.childId) : undefined;
 
   async function removeAction() {
@@ -30,10 +49,31 @@ export function ActivityTimeline({ actions, childrenList, limit }: { actions: Ac
     }
   }
 
-  if (!visible.length) return <div className="rounded-3xl bg-white p-5 text-center font-bold text-slate-500 shadow-soft dark:bg-slate-800 dark:text-slate-300">No actions yet. Start by noticing one kind moment.</div>;
+  if (!sortedActions.length) return <div className="rounded-3xl bg-white p-5 text-center font-bold text-slate-500 shadow-soft dark:bg-slate-800 dark:text-slate-300">No actions yet. Start by noticing one kind moment.</div>;
 
   return (
     <>
+      {(allowChildFilter || allowTypeFilter) ? (
+        <div className="mb-3 grid gap-2 sm:grid-cols-2">
+          {allowChildFilter && childrenList.length > 1 ? (
+            <select value={selectedChildId} onChange={(event) => { setSelectedChildId(event.target.value); setVisibleCount(pageSize); }} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-black dark:border-slate-600 dark:bg-slate-900">
+              <option value="all">All children</option>
+              {childrenList.map((child) => <option key={child.id} value={child.id}>{child.avatar} {child.name}</option>)}
+            </select>
+          ) : null}
+          {allowTypeFilter ? (
+            <select value={selectedType} onChange={(event) => { setSelectedType(event.target.value as "all" | ActionType); setVisibleCount(pageSize); }} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-black dark:border-slate-600 dark:bg-slate-900">
+              <option value="all">All categories</option>
+              <option value="positive">Positive</option>
+              <option value="negative">Negative</option>
+              <option value="repair">Repair</option>
+            </select>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!visible.length ? <div className="mb-3 rounded-3xl bg-white p-5 text-center font-bold text-slate-500 shadow-soft dark:bg-slate-800 dark:text-slate-300">No matching actions for this filter.</div> : null}
+
       <div className="space-y-3">
         {visible.map((action) => {
           const child = childrenList.find((item) => item.id === action.childId);
@@ -57,6 +97,7 @@ export function ActivityTimeline({ actions, childrenList, limit }: { actions: Ac
           );
         })}
       </div>
+      {canShowMore ? <button type="button" onClick={() => setVisibleCount((count) => count + pageSize)} className="mt-4 min-h-12 w-full rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-700 dark:bg-slate-700 dark:text-slate-100">Show more</button> : null}
       {actionToRemove ? (
         <div className="fixed inset-0 z-50 grid place-items-end bg-slate-950/45 p-3 backdrop-blur-sm sm:place-items-center" role="dialog" aria-modal="true" aria-labelledby="remove-action-title">
           <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">

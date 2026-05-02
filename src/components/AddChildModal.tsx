@@ -10,15 +10,22 @@ export function AddChildModal({ open, onClose }: { open: boolean; onClose: () =>
   const { addChild } = useKindPoints();
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState(avatars[0]);
+  const [ageInput, setAgeInput] = useState("");
+  const [gender, setGender] = useState<"boy" | "girl" | "other">("other");
+  const [bio, setBio] = useState("");
 
   if (!open) return null;
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (!name.trim()) return;
-    addChild({ name: name.trim(), avatar });
+    const age = Number(ageInput);
+    if (!name.trim() || !Number.isFinite(age) || age <= 0 || !gender) return;
+    addChild({ name: name.trim(), avatar, age: Math.round(age), gender, bio: bio.trim() || undefined });
     setName("");
     setAvatar(avatars[0]);
+    setAgeInput("");
+    setGender("other");
+    setBio("");
     onClose();
   }
 
@@ -30,7 +37,23 @@ export function AddChildModal({ open, onClose }: { open: boolean; onClose: () =>
           <button type="button" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-full bg-slate-100 dark:bg-slate-700" aria-label="Close add child modal"><X className="h-5 w-5" /></button>
         </div>
         <label className="text-sm font-extrabold text-slate-600 dark:text-slate-200" htmlFor="child-name">Name</label>
-        <input id="child-name" value={name} onChange={(event) => setName(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Child name" />
+        <input id="child-name" value={name} onChange={(event) => setName(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Child name" required />
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Age</span>
+            <input type="number" value={ageInput} onChange={(event) => setAgeInput(event.target.value)} min={1} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Age" required />
+          </label>
+          <label className="block">
+            <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Gender</span>
+            <select value={gender} onChange={(event) => setGender(event.target.value as "boy" | "girl" | "other")} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" required>
+              <option value="boy">Boy</option>
+              <option value="girl">Girl</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+        </div>
+        <label className="mt-4 block text-sm font-extrabold text-slate-600 dark:text-slate-200" htmlFor="child-bio">Bio (optional)</label>
+        <textarea id="child-bio" value={bio} onChange={(event) => setBio(event.target.value)} className="mt-2 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="A few words about this child" />
         <div className="mt-4 text-sm font-extrabold text-slate-600 dark:text-slate-200">Avatar</div>
         <div className="mt-2 grid grid-cols-5 gap-2">
           {avatars.map((item) => <button key={item} type="button" onClick={() => setAvatar(item)} className={`h-12 rounded-2xl text-2xl ${avatar === item ? "bg-blueberry text-white" : "bg-slate-100 dark:bg-slate-700"}`}>{item}</button>)}

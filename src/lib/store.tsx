@@ -18,13 +18,13 @@ type StoreContextValue = {
   family?: FamilyInfo;
   hydrated: boolean;
   error?: string;
-  addChild: (child: Pick<Child, "name" | "avatar">) => Promise<void>;
+  addChild: (child: Pick<Child, "name" | "avatar" | "age" | "gender" | "bio">) => Promise<void>;
   updateChild: (id: string, updates: Pick<Child, "name" | "avatar">) => Promise<void>;
   deleteChild: (id: string) => Promise<void>;
   addAction: (input: AddActionInput) => Promise<Action | undefined>;
   undoAction: (id: string) => Promise<void>;
   addCustomAction: (input: Omit<CustomAction, "id" | "createdAt">) => Promise<void>;
-  updateCustomAction: (id: string, updates: Pick<CustomAction, "title" | "category" | "points" | "note" | "presetKey" | "disabled">) => Promise<void>;
+  updateCustomAction: (id: string, updates: Pick<CustomAction, "title" | "category" | "points" | "note" | "presetKey" | "disabled" | "sortIndex">) => Promise<void>;
   deleteCustomAction: (id: string) => Promise<void>;
   addReward: (input: Pick<Reward, "title" | "cost" | "description">) => Promise<void>;
   updateReward: (id: string, updates: Pick<Reward, "title" | "cost" | "description">) => Promise<void>;

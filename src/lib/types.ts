@@ -4,6 +4,9 @@ export type Child = {
   id: string;
   name: string;
   avatar: string;
+  age: number;
+  gender: "boy" | "girl" | "other";
+  bio?: string;
   points: number;
   createdAt: string;
 };
@@ -37,6 +40,7 @@ export type CustomAction = {
   note?: string;
   presetKey?: string;
   disabled?: boolean;
+  sortIndex?: number;
   createdAt: string;
 };
 

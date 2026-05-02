@@ -16,6 +16,7 @@ export default function RewardsPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editCostInput, setEditCostInput] = useState("50");
   const [editDescription, setEditDescription] = useState("");
+  const [rewardToDelete, setRewardToDelete] = useState<Reward | null>(null);
 
   function parsePointValue(input: string, fallback: number) {
     const parsed = Number(input);
@@ -49,9 +50,25 @@ export default function RewardsPage() {
   }
 
   async function removeReward(reward: Reward) {
-    if (!window.confirm(`Delete "${reward.title}" from the reward shop?`)) return;
-    await deleteReward(reward.id);
-    if (editingRewardId === reward.id) setEditingRewardId(null);
+    setRewardToDelete(reward);
+  }
+
+  async function confirmRemoveReward() {
+    if (!rewardToDelete) return;
+    await deleteReward(rewardToDelete.id);
+    if (editingRewardId === rewardToDelete.id) setEditingRewardId(null);
+    setRewardToDelete(null);
+  }
+
+  function cancelRemoveReward() {
+    setRewardToDelete(null);
+  }
+
+  async function removeEditingReward() {
+    if (!editingRewardId) return;
+    const reward = data.rewards.find((item) => item.id === editingRewardId);
+    if (!reward) return;
+    setRewardToDelete(reward);
   }
 
   const selectedChild = data.children.find((child) => child.id === childId) ?? data.children[0];
@@ -63,7 +80,7 @@ export default function RewardsPage() {
           <span className="grid h-14 w-14 place-items-center rounded-3xl bg-sunshine"><Gift className="h-7 w-7 text-amber-700" /></span>
           <div>
             <h1 className="text-3xl font-black">Rewards</h1>
-            <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Create meaningful rewards and redeem them when a child is ready.</p>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Create meaningful rewards and redeem them when a child is ready.</p>
           </div>
         </div>
       </section>
@@ -90,13 +107,27 @@ export default function RewardsPage() {
               <input type="number" value={editCostInput} min={1} onChange={(event) => setEditCostInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
             </div>
             <textarea value={editDescription} onChange={(event) => setEditDescription(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Description" />
-            <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="mt-3 grid grid-cols-3 gap-2">
               <button className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Check className="h-5 w-5" /> Save</button>
               <button type="button" onClick={() => setEditingRewardId(null)} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-600 dark:bg-slate-700 dark:text-slate-200"><X className="h-5 w-5" /> Cancel</button>
+              <button type="button" onClick={removeEditingReward} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 dark:bg-orange-950 dark:text-orange-100">Delete</button>
             </div>
           </form>
         ) : <RewardCard key={reward.id} reward={reward} canRedeem={Boolean(selectedChild && selectedChild.points >= reward.cost)} onRedeem={selectedChild ? () => redeemReward(reward.id, selectedChild.id) : undefined} onEdit={() => startEdit(reward)} onDelete={() => removeReward(reward)} />)}</div>
       </section>
+
+      {rewardToDelete ? (
+        <div className="fixed inset-0 z-50 grid place-items-end bg-slate-900/30 p-3 sm:place-items-center">
+          <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+            <h2 className="text-xl font-black">Delete reward?</h2>
+            <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">This will remove &quot;{rewardToDelete.title}&quot; from the reward shop.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button type="button" onClick={cancelRemoveReward} className="flex min-h-12 items-center justify-center rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-700 dark:bg-slate-700 dark:text-slate-100">Cancel</button>
+              <button type="button" onClick={confirmRemoveReward} className="flex min-h-12 items-center justify-center rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 dark:bg-orange-950 dark:text-orange-100">Yes, delete</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

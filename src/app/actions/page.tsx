@@ -1,10 +1,19 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { Check, ClipboardList, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ClipboardList, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { negativeBehaviours, positiveBehaviours, repairActions } from "@/lib/defaults";
 import { useKindPoints } from "@/lib/store";
 import { ActionType, CustomAction } from "@/lib/types";
+
+type PresetAction = {
+  key: string;
+  title: string;
+  category: ActionType;
+  points: number;
+  emoji: string;
+  defaultSortIndex: number;
+};
 
 type DeleteTarget =
   | { kind: "custom"; id: string; title: string }
@@ -12,14 +21,13 @@ type DeleteTarget =
 
 export default function ActionsPage() {
   const { data, addCustomAction, updateCustomAction, deleteCustomAction } = useKindPoints();
+  const [tab, setTab] = useState<ActionType>("positive");
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState<ActionType>("positive");
   const [pointsInput, setPointsInput] = useState("10");
   const [note, setNote] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingPresetKey, setEditingPresetKey] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  const [editCategory, setEditCategory] = useState<ActionType>("positive");
   const [editPointsInput, setEditPointsInput] = useState("10");
   const [editNote, setEditNote] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -30,22 +38,45 @@ export default function ActionsPage() {
       title: item.title,
       category: type,
       points: item.points,
-      emoji: item.emoji
+      emoji: item.emoji,
+      defaultSortIndex: index + 1
     }));
     return [
       ...asPreset(positiveBehaviours, "positive"),
       ...asPreset(negativeBehaviours, "negative"),
       ...asPreset(repairActions, "repair")
-    ];
+    ] as PresetAction[];
   }, []);
+
+  const presetByKey = useMemo(() => new Map(presetActions.map((preset) => [preset.key, preset])), [presetActions]);
 
   const presetOverrides = useMemo(() => {
     return new Map(data.customActions.filter((action) => action.presetKey).map((action) => [action.presetKey as string, action]));
   }, [data.customActions]);
 
-  const presetByKey = useMemo(() => new Map(presetActions.map((preset) => [preset.key, preset])), [presetActions]);
+  const tabPresets = useMemo(() => {
+    return presetActions
+      .filter((preset) => preset.category === tab)
+      .map((preset) => {
+        const override = presetOverrides.get(preset.key);
+        return {
+          preset,
+          override,
+          isDeleted: Boolean(override?.disabled),
+          shownTitle: override?.title ?? preset.title,
+          shownPoints: override?.points ?? preset.points,
+          shownNote: override?.note,
+          sortIndex: override?.sortIndex ?? preset.defaultSortIndex
+        };
+      })
+      .sort((a, b) => a.sortIndex - b.sortIndex);
+  }, [presetActions, presetOverrides, tab]);
 
-  const standaloneCustomActions = useMemo(() => data.customActions.filter((action) => !action.presetKey && !action.disabled), [data.customActions]);
+  const customActionsForTab = useMemo(() => {
+    return data.customActions
+      .filter((action) => action.category === tab && !action.presetKey && !action.disabled)
+      .sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0));
+  }, [data.customActions, tab]);
 
   function parsePoints(input: string) {
     const parsed = Number(input);
@@ -53,14 +84,79 @@ export default function ActionsPage() {
     return Math.max(1, Math.round(Math.abs(parsed)));
   }
 
+  function badgeClass(item: ActionType) {
+    if (item === "negative") return "bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100";
+    if (item === "repair") return "bg-sunshine text-slate-800 dark:bg-amber-900/40 dark:text-amber-100";
+    return "bg-mint text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100";
+  }
+
+  async function upsertPresetOverride(presetKey: string, updates: Partial<Pick<CustomAction, "title" | "points" | "note" | "disabled" | "sortIndex">>) {
+    const preset = presetByKey.get(presetKey);
+    if (!preset) return;
+    const existingOverride = presetOverrides.get(presetKey);
+
+    const payload = {
+      title: updates.title ?? existingOverride?.title ?? preset.title,
+      category: preset.category,
+      points: updates.points ?? existingOverride?.points ?? preset.points,
+      note: updates.note ?? existingOverride?.note,
+      presetKey,
+      disabled: updates.disabled ?? existingOverride?.disabled ?? false,
+      sortIndex: updates.sortIndex ?? existingOverride?.sortIndex ?? preset.defaultSortIndex
+    };
+
+    if (existingOverride) {
+      await updateCustomAction(existingOverride.id, payload);
+    } else {
+      await addCustomAction(payload);
+    }
+  }
+
+  async function movePreset(presetKey: string, direction: -1 | 1) {
+    const index = tabPresets.findIndex((item) => item.preset.key === presetKey);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= tabPresets.length) return;
+
+    const ordered = [...tabPresets];
+    const [moved] = ordered.splice(index, 1);
+    ordered.splice(nextIndex, 0, moved);
+
+    for (let i = 0; i < ordered.length; i += 1) {
+      await upsertPresetOverride(ordered[i].preset.key, { sortIndex: i + 1 });
+    }
+  }
+
+  async function moveCustom(action: CustomAction, direction: -1 | 1) {
+    const index = customActionsForTab.findIndex((item) => item.id === action.id);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= customActionsForTab.length) return;
+
+    const current = customActionsForTab[index];
+    const next = customActionsForTab[nextIndex];
+    await updateCustomAction(current.id, {
+      title: current.title,
+      category: current.category,
+      points: current.points,
+      note: current.note,
+      sortIndex: next.sortIndex ?? nextIndex + 1
+    });
+    await updateCustomAction(next.id, {
+      title: next.title,
+      category: next.category,
+      points: next.points,
+      note: next.note,
+      sortIndex: current.sortIndex ?? index + 1
+    });
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!title.trim()) return;
     const basePoints = parsePoints(pointsInput);
-    const points = category === "negative" ? -basePoints : basePoints;
-    await addCustomAction({ title: title.trim(), category, points, note: note.trim() || undefined });
+    const points = tab === "negative" ? -basePoints : basePoints;
+    const nextSortIndex = (customActionsForTab[customActionsForTab.length - 1]?.sortIndex ?? customActionsForTab.length) + 1;
+    await addCustomAction({ title: title.trim(), category: tab, points, note: note.trim() || undefined, sortIndex: nextSortIndex });
     setTitle("");
-    setCategory("positive");
     setPointsInput("10");
     setNote("");
   }
@@ -69,80 +165,62 @@ export default function ActionsPage() {
     setEditingId(action.id);
     setEditingPresetKey(null);
     setEditTitle(action.title);
-    setEditCategory(action.category);
     setEditPointsInput(String(Math.abs(action.points)));
     setEditNote(action.note ?? "");
   }
 
-  function startPresetEdit(presetKey: string, type: ActionType) {
-    const fallbackPreset = presetActions.find((item) => item.key === presetKey);
-    if (!fallbackPreset) return;
+  function startPresetEdit(presetKey: string) {
+    const preset = presetByKey.get(presetKey);
+    if (!preset) return;
     const override = presetOverrides.get(presetKey);
     setEditingPresetKey(presetKey);
     setEditingId(null);
-    setEditTitle(override?.title ?? fallbackPreset.title);
-    setEditCategory(type);
-    setEditPointsInput(String(Math.abs(override?.points ?? fallbackPreset.points)));
+    setEditTitle(override?.title ?? preset.title);
+    setEditPointsInput(String(Math.abs(override?.points ?? preset.points)));
     setEditNote(override?.note ?? "");
   }
 
   async function saveEdit(event: FormEvent) {
     event.preventDefault();
     if (!editingId || !editTitle.trim()) return;
+    const existing = customActionsForTab.find((item) => item.id === editingId);
+    if (!existing) return;
     const basePoints = parsePoints(editPointsInput);
-    const points = editCategory === "negative" ? -basePoints : basePoints;
-    await updateCustomAction(editingId, { title: editTitle.trim(), category: editCategory, points, note: editNote.trim() || undefined });
+    const points = tab === "negative" ? -basePoints : basePoints;
+    await updateCustomAction(editingId, {
+      title: editTitle.trim(),
+      category: existing.category,
+      points,
+      note: editNote.trim() || undefined,
+      sortIndex: existing.sortIndex
+    });
     setEditingId(null);
   }
 
   async function savePresetEdit(event: FormEvent) {
     event.preventDefault();
     if (!editingPresetKey || !editTitle.trim()) return;
+    const preset = presetByKey.get(editingPresetKey);
+    if (!preset) return;
     const basePoints = parsePoints(editPointsInput);
-    const points = editCategory === "negative" ? -basePoints : basePoints;
-    const existingOverride = presetOverrides.get(editingPresetKey);
-    if (existingOverride) {
-      await updateCustomAction(existingOverride.id, {
-        title: editTitle.trim(),
-        category: editCategory,
-        points,
-        note: editNote.trim() || undefined,
-        presetKey: editingPresetKey
-      });
-    } else {
-      await addCustomAction({
-        title: editTitle.trim(),
-        category: editCategory,
-        points,
-        note: editNote.trim() || undefined,
-        presetKey: editingPresetKey
-      });
-    }
+    const points = preset.category === "negative" ? -basePoints : basePoints;
+    await upsertPresetOverride(editingPresetKey, { title: editTitle.trim(), points, note: editNote.trim() || undefined, disabled: false });
     setEditingPresetKey(null);
   }
 
-  async function removeAction(action: CustomAction) {
+  function removeAction(action: CustomAction) {
     setDeleteTarget({ kind: "custom", id: action.id, title: action.title });
   }
 
-  async function resetPreset(presetKey: string) {
-    const override = presetOverrides.get(presetKey);
+  function deletePreset(presetKey: string) {
     const preset = presetByKey.get(presetKey);
+    const override = presetOverrides.get(presetKey);
     if (!preset) return;
     setDeleteTarget({ kind: "preset", presetKey, title: override?.title ?? preset.title });
   }
 
   async function restorePreset(presetKey: string) {
-    const override = presetOverrides.get(presetKey);
-    if (!override) return;
-    await updateCustomAction(override.id, {
-      title: override.title,
-      category: override.category,
-      points: override.points,
-      note: override.note,
-      presetKey,
-      disabled: false
-    });
+    await upsertPresetOverride(presetKey, { disabled: false });
   }
 
   async function confirmDelete() {
@@ -152,39 +230,10 @@ export default function ActionsPage() {
       if (editingId === deleteTarget.id) setEditingId(null);
     }
     if (deleteTarget.kind === "preset") {
-      const override = presetOverrides.get(deleteTarget.presetKey);
-      const preset = presetByKey.get(deleteTarget.presetKey);
-      if (!preset) {
-        setDeleteTarget(null);
-        return;
-      }
-      if (override) {
-        await updateCustomAction(override.id, {
-          title: override.title,
-          category: override.category,
-          points: override.points,
-          note: override.note,
-          presetKey: deleteTarget.presetKey,
-          disabled: true
-        });
-      } else {
-        await addCustomAction({
-          title: preset.title,
-          category: preset.category,
-          points: preset.points,
-          presetKey: deleteTarget.presetKey,
-          disabled: true
-        });
-      }
+      await upsertPresetOverride(deleteTarget.presetKey, { disabled: true });
       if (editingPresetKey === deleteTarget.presetKey) setEditingPresetKey(null);
     }
     setDeleteTarget(null);
-  }
-
-  function badgeClass(item: ActionType) {
-    if (item === "negative") return "bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100";
-    if (item === "repair") return "bg-sunshine text-slate-800 dark:bg-amber-900/40 dark:text-amber-100";
-    return "bg-mint text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100";
   }
 
   return (
@@ -194,40 +243,26 @@ export default function ActionsPage() {
           <span className="grid h-14 w-14 place-items-center rounded-3xl bg-skywash text-blueberry dark:bg-slate-700 dark:text-sky-300"><ClipboardList className="h-7 w-7" /></span>
           <div>
             <h1 className="text-3xl font-black">Actions</h1>
-            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Create and manage reusable action templates for positive, negative, and repair moments.</p>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Manage preset and custom templates by category, then reorder them for the record-action picker.</p>
           </div>
         </div>
       </section>
 
-      <form onSubmit={submit} className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <h2 className="text-xl font-black">Add custom action</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_130px_120px]">
-          <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Action title" />
-          <select value={category} onChange={(event) => setCategory(event.target.value as ActionType)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900">
-            <option value="positive">Positive</option>
-            <option value="negative">Negative</option>
-            <option value="repair">Repair</option>
-          </select>
-          <input type="number" value={pointsInput} min={1} onChange={(event) => setPointsInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
+      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+        <div className="grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-700">
+          {(["positive", "negative", "repair"] as ActionType[]).map((item) => <button key={item} type="button" onClick={() => { setTab(item); setEditingId(null); setEditingPresetKey(null); }} className={`min-h-11 rounded-xl text-sm font-black capitalize ${tab === item ? "bg-white text-blueberry shadow-sm dark:bg-slate-900 dark:text-sky-300" : "text-slate-500 dark:text-slate-300"}`}>{item}</button>)}
         </div>
-        <textarea value={note} onChange={(event) => setNote(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional note" />
-        <button className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Plus className="h-5 w-5" /> Add action</button>
-      </form>
+      </section>
 
       <section>
         <h2 className="mb-3 text-xl font-black">Preset actions</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          {presetActions.map((preset) => {
-            const override = presetOverrides.get(preset.key);
-            const isDeleted = Boolean(override?.disabled);
-            const shownTitle = override?.title ?? preset.title;
-            const shownPoints = override?.points ?? preset.points;
-            const shownNote = override?.note;
-            const isEditing = editingPresetKey === preset.key;
+          {tabPresets.map((item, index) => {
+            const isEditing = editingPresetKey === item.preset.key;
 
             if (isEditing) {
               return (
-                <form key={preset.key} onSubmit={savePresetEdit} className="rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800">
+                <form key={item.preset.key} onSubmit={savePresetEdit} className="rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800">
                   <h3 className="font-black">Edit preset action</h3>
                   <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_110px]">
                     <input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Action title" />
@@ -243,20 +278,21 @@ export default function ActionsPage() {
             }
 
             return (
-              <article key={preset.key} className="rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800">
+              <article key={item.preset.key} className="rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-black">{preset.emoji} {shownTitle}</h3>
-                    <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">{isDeleted ? "Deleted from picker" : shownNote || "Preset action"}</p>
+                    <h3 className="text-lg font-black">{item.preset.emoji} {item.shownTitle}</h3>
+                    <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">{item.isDeleted ? "Deleted from picker" : item.shownNote || "Preset action"}</p>
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-extrabold uppercase ${badgeClass(preset.category)}`}>{preset.category}</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-extrabold uppercase ${badgeClass(item.preset.category)}`}>{item.preset.category}</span>
                 </div>
                 <div className="mt-4 flex items-center justify-between">
-                  <span className="text-xl font-black text-blueberry dark:text-sky-300">{shownPoints > 0 ? "+" : ""}{shownPoints} pts</span>
+                  <span className="text-xl font-black text-blueberry dark:text-sky-300">{item.shownPoints > 0 ? "+" : ""}{item.shownPoints} pts</span>
                   <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => startPresetEdit(preset.key, preset.category)} className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 dark:bg-slate-700" aria-label={`Edit ${shownTitle}`}><Pencil className="h-5 w-5" /></button>
-                    {isDeleted ? <button type="button" onClick={() => restorePreset(preset.key)} className="rounded-2xl bg-mint px-3 py-2 text-xs font-black text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">Restore</button> : null}
-                    {!isDeleted ? <button type="button" onClick={() => resetPreset(preset.key)} className="grid h-11 w-11 place-items-center rounded-2xl bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" aria-label={`Delete ${shownTitle}`}><Trash2 className="h-5 w-5" /></button> : null}
+                    <button type="button" onClick={() => movePreset(item.preset.key, -1)} disabled={index === 0} className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 disabled:opacity-50 dark:bg-slate-700" aria-label={`Move ${item.shownTitle} up`}><ArrowUp className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => movePreset(item.preset.key, 1)} disabled={index === tabPresets.length - 1} className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 disabled:opacity-50 dark:bg-slate-700" aria-label={`Move ${item.shownTitle} down`}><ArrowDown className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => startPresetEdit(item.preset.key)} className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 dark:bg-slate-700" aria-label={`Edit ${item.shownTitle}`}><Pencil className="h-5 w-5" /></button>
+                    {item.isDeleted ? <button type="button" onClick={() => restorePreset(item.preset.key)} className="grid h-11 w-11 place-items-center rounded-2xl bg-mint text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100" aria-label={`Restore ${item.shownTitle}`}><RotateCcw className="h-4 w-4" /></button> : <button type="button" onClick={() => deletePreset(item.preset.key)} className="grid h-11 w-11 place-items-center rounded-2xl bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" aria-label={`Delete ${item.shownTitle}`}><Trash2 className="h-5 w-5" /></button>}
                   </div>
                 </div>
               </article>
@@ -265,20 +301,26 @@ export default function ActionsPage() {
         </div>
       </section>
 
+      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+        <h2 className="text-xl font-black">Custom actions</h2>
+        <form onSubmit={submit} className="mt-4">
+          <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
+            <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Action title" />
+            <input type="number" value={pointsInput} min={1} onChange={(event) => setPointsInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
+          </div>
+          <textarea value={note} onChange={(event) => setNote(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional note" />
+          <button className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Plus className="h-5 w-5" /> Add custom action</button>
+        </form>
+      </section>
+
       <section>
-        <h2 className="mb-3 text-xl font-black">Custom actions</h2>
-        {standaloneCustomActions.length ? (
+        {customActionsForTab.length ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            {standaloneCustomActions.map((action) => editingId === action.id ? (
+            {customActionsForTab.map((action, index) => editingId === action.id ? (
               <form key={action.id} onSubmit={saveEdit} className="rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800">
-                <h3 className="font-black">Edit action</h3>
-                <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_130px_110px]">
+                <h3 className="font-black">Edit custom action</h3>
+                <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_110px]">
                   <input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Action title" />
-                  <select value={editCategory} onChange={(event) => setEditCategory(event.target.value as ActionType)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900">
-                    <option value="positive">Positive</option>
-                    <option value="negative">Negative</option>
-                    <option value="repair">Repair</option>
-                  </select>
                   <input type="number" value={editPointsInput} min={1} onChange={(event) => setEditPointsInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
                 </div>
                 <textarea value={editNote} onChange={(event) => setEditNote(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional note" />
@@ -299,6 +341,8 @@ export default function ActionsPage() {
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-xl font-black text-blueberry dark:text-sky-300">{action.points > 0 ? "+" : ""}{action.points} pts</span>
                   <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => moveCustom(action, -1)} disabled={index === 0} className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 disabled:opacity-50 dark:bg-slate-700" aria-label={`Move ${action.title} up`}><ArrowUp className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => moveCustom(action, 1)} disabled={index === customActionsForTab.length - 1} className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 disabled:opacity-50 dark:bg-slate-700" aria-label={`Move ${action.title} down`}><ArrowDown className="h-4 w-4" /></button>
                     <button type="button" onClick={() => startEdit(action)} className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 dark:bg-slate-700" aria-label={`Edit ${action.title}`}><Pencil className="h-5 w-5" /></button>
                     <button type="button" onClick={() => removeAction(action)} className="grid h-11 w-11 place-items-center rounded-2xl bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" aria-label={`Delete ${action.title}`}><Trash2 className="h-5 w-5" /></button>
                   </div>
@@ -307,7 +351,7 @@ export default function ActionsPage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl bg-white p-5 text-sm font-bold text-slate-500 shadow-soft dark:bg-slate-800 dark:text-slate-300">No custom actions yet. Add one above to reuse it in the action modal.</div>
+          <div className="rounded-3xl bg-white p-5 text-sm font-bold text-slate-500 shadow-soft dark:bg-slate-800 dark:text-slate-300">No custom actions in this category yet.</div>
         )}
       </section>
 
@@ -318,7 +362,7 @@ export default function ActionsPage() {
             <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">
               {deleteTarget.kind === "preset"
                 ? `This will hide "${deleteTarget.title}" from the action picker. Previously saved child actions stay unchanged.`
-                : `This will delete "${deleteTarget.title}" from your reusable custom actions. Previously saved child actions stay unchanged.`}
+                : `This will delete "${deleteTarget.title}" from reusable custom actions. Previously saved child actions stay unchanged.`}
             </p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setDeleteTarget(null)} className="flex min-h-12 items-center justify-center rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-700 dark:bg-slate-700 dark:text-slate-100">Cancel</button>

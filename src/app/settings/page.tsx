@@ -28,10 +28,25 @@ export default function SettingsPage() {
   const [installMessage, setInstallMessage] = useState("");
   const [isIos, setIsIos] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [allowNegativeDraft, setAllowNegativeDraft] = useState(data.settings.allowNegativeBalance);
+  const [dailyNegativeLimitDraft, setDailyNegativeLimitDraft] = useState(String(data.settings.dailyNegativeLimit));
+  const [perIncidentNegativeLimitDraft, setPerIncidentNegativeLimitDraft] = useState(String(data.settings.perIncidentNegativeLimit));
+  const [fairnessMessage, setFairnessMessage] = useState("");
+  const [goalTitleDraft, setGoalTitleDraft] = useState(data.settings.familyGoalTitle);
+  const [goalTargetDraft, setGoalTargetDraft] = useState(String(data.settings.familyGoalTarget));
+  const [goalMessage, setGoalMessage] = useState("");
 
   useEffect(() => {
     setPinDraft(data.settings.parentPin);
   }, [data.settings.parentPin]);
+
+  useEffect(() => {
+    setAllowNegativeDraft(data.settings.allowNegativeBalance);
+    setDailyNegativeLimitDraft(String(data.settings.dailyNegativeLimit));
+    setPerIncidentNegativeLimitDraft(String(data.settings.perIncidentNegativeLimit));
+    setGoalTitleDraft(data.settings.familyGoalTitle);
+    setGoalTargetDraft(String(data.settings.familyGoalTarget));
+  }, [data.settings.allowNegativeBalance, data.settings.dailyNegativeLimit, data.settings.perIncidentNegativeLimit, data.settings.familyGoalTitle, data.settings.familyGoalTarget]);
 
   useEffect(() => {
     const ua = window.navigator.userAgent.toLowerCase();
@@ -66,8 +81,10 @@ export default function SettingsPage() {
     };
   }, []);
 
-  function updateNumber(key: "dailyNegativeLimit" | "perIncidentNegativeLimit" | "familyGoalTarget", event: ChangeEvent<HTMLInputElement>) {
-    updateSettings({ [key]: Number(event.target.value) });
+  function parsePositiveNumber(input: string, fallback: number) {
+    const parsed = Number(input);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(1, Math.round(parsed));
   }
 
   async function copySync() {
@@ -95,6 +112,25 @@ export default function SettingsPage() {
     await updateSettings({ parentPin: pinDraft.trim() });
     setPinMessage(pinDraft.trim() ? "PIN saved" : "PIN removed");
     window.setTimeout(() => setPinMessage(""), 1600);
+  }
+
+  async function saveFairness() {
+    await updateSettings({
+      allowNegativeBalance: allowNegativeDraft,
+      dailyNegativeLimit: parsePositiveNumber(dailyNegativeLimitDraft, data.settings.dailyNegativeLimit),
+      perIncidentNegativeLimit: parsePositiveNumber(perIncidentNegativeLimitDraft, data.settings.perIncidentNegativeLimit)
+    });
+    setFairnessMessage("Fairness safeguards saved");
+    window.setTimeout(() => setFairnessMessage(""), 1800);
+  }
+
+  async function saveGoal() {
+    await updateSettings({
+      familyGoalTitle: goalTitleDraft.trim() || data.settings.familyGoalTitle,
+      familyGoalTarget: parsePositiveNumber(goalTargetDraft, data.settings.familyGoalTarget)
+    });
+    setGoalMessage("Family goal saved");
+    window.setTimeout(() => setGoalMessage(""), 1800);
   }
 
   async function installApp() {
@@ -130,7 +166,7 @@ export default function SettingsPage() {
           <span className="grid h-14 w-14 place-items-center rounded-3xl bg-skywash text-blueberry dark:bg-slate-700 dark:text-sky-300"><Shield className="h-7 w-7" /></span>
           <div>
             <h1 className="text-3xl font-black">Parent settings</h1>
-            <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Tune fairness rules, family sync, and parent controls.</p>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Tune fairness rules, family sync, and parent controls.</p>
           </div>
         </div>
       </section>
@@ -172,9 +208,11 @@ export default function SettingsPage() {
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
         <h2 className="text-xl font-black">Fairness safeguards</h2>
-        <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span>Allow points below zero</span><input type="checkbox" checked={data.settings.allowNegativeBalance} onChange={(event) => updateSettings({ allowNegativeBalance: event.target.checked })} className="h-6 w-6" /></label>
-        <NumberField label="Daily negative point limit" value={data.settings.dailyNegativeLimit} onChange={(event) => updateNumber("dailyNegativeLimit", event)} />
-        <NumberField label="Per incident negative limit" value={data.settings.perIncidentNegativeLimit} onChange={(event) => updateNumber("perIncidentNegativeLimit", event)} />
+        <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span>Allow points below zero</span><input type="checkbox" checked={allowNegativeDraft} onChange={(event) => setAllowNegativeDraft(event.target.checked)} className="h-6 w-6" /></label>
+        <NumberField label="Daily negative point limit" value={dailyNegativeLimitDraft} onChange={(event) => setDailyNegativeLimitDraft(event.target.value)} />
+        <NumberField label="Per incident negative limit" value={perIncidentNegativeLimitDraft} onChange={(event) => setPerIncidentNegativeLimitDraft(event.target.value)} />
+        <button type="button" onClick={saveFairness} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white">Save fairness safeguards</button>
+        {fairnessMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{fairnessMessage}</p> : null}
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
@@ -187,9 +225,11 @@ export default function SettingsPage() {
         </div>
         <label className="mt-4 block">
           <span className="text-sm font-extrabold text-slate-500 dark:text-slate-300">Goal title</span>
-          <input value={data.settings.familyGoalTitle} onChange={(event) => updateSettings({ familyGoalTitle: event.target.value })} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
+          <input value={goalTitleDraft} onChange={(event) => setGoalTitleDraft(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
         </label>
-        <NumberField label="Target points" value={data.settings.familyGoalTarget} onChange={(event) => updateNumber("familyGoalTarget", event)} />
+        <NumberField label="Target points" value={goalTargetDraft} onChange={(event) => setGoalTargetDraft(event.target.value)} />
+        <button type="button" onClick={saveGoal} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white">Save family goal</button>
+        {goalMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{goalMessage}</p> : null}
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
@@ -236,7 +276,7 @@ export default function SettingsPage() {
   );
 }
 
-function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (event: ChangeEvent<HTMLInputElement>) => void }) {
+function NumberField({ label, value, onChange }: { label: string; value: string; onChange: (event: ChangeEvent<HTMLInputElement>) => void }) {
   return (
     <label className="mt-4 block">
       <span className="text-sm font-extrabold text-slate-500 dark:text-slate-300">{label}</span>

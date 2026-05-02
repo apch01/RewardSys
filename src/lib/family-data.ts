@@ -17,7 +17,12 @@ type FamilyMutationResult = {
 
 export function normalizeData(data: Partial<AppData> | null | undefined): AppData {
   return {
-    children: data?.children ?? [],
+    children: (data?.children ?? []).map((child) => ({
+      ...child,
+      age: child.age ?? 0,
+      gender: child.gender ?? "other",
+      bio: child.bio ?? ""
+    })),
     actions: data?.actions ?? [],
     rewards: data?.rewards?.length ? data.rewards : defaultRewards,
     customActions: data?.customActions ?? [],
@@ -32,7 +37,7 @@ export function normalizeData(data: Partial<AppData> | null | undefined): AppDat
   };
 }
 
-export function addChildToData(data: AppData, child: Pick<Child, "name" | "avatar">): FamilyMutationResult {
+export function addChildToData(data: AppData, child: Pick<Child, "name" | "avatar" | "age" | "gender" | "bio">): FamilyMutationResult {
   const newChild: Child = { id: createId("child"), points: 0, createdAt: new Date().toISOString(), ...child };
   return { data: { ...data, children: [...data.children, newChild] } };
 }
@@ -92,10 +97,16 @@ export function undoActionInData(data: AppData, id: string): FamilyMutationResul
 
 export function addCustomActionToData(data: AppData, input: Omit<CustomAction, "id" | "createdAt">): FamilyMutationResult {
   const points = input.category === "negative" ? -Math.abs(input.points) : Math.abs(input.points);
-  return { data: { ...data, customActions: [{ id: createId("custom"), ...input, points, createdAt: new Date().toISOString() }, ...data.customActions] } };
+  const nextSortIndex = (data.customActions.filter((action) => action.category === input.category).map((action) => action.sortIndex ?? 0).reduce((max, value) => Math.max(max, value), 0) || 0) + 1;
+  return {
+    data: {
+      ...data,
+      customActions: [{ id: createId("custom"), ...input, points, sortIndex: input.sortIndex ?? nextSortIndex, createdAt: new Date().toISOString() }, ...data.customActions]
+    }
+  };
 }
 
-export function updateCustomActionInData(data: AppData, id: string, updates: Pick<CustomAction, "title" | "category" | "points" | "note" | "presetKey" | "disabled">): FamilyMutationResult {
+export function updateCustomActionInData(data: AppData, id: string, updates: Pick<CustomAction, "title" | "category" | "points" | "note" | "presetKey" | "disabled" | "sortIndex">): FamilyMutationResult {
   const points = updates.category === "negative" ? -Math.abs(updates.points) : Math.abs(updates.points);
   return {
     data: {

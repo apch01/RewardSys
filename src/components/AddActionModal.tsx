@@ -30,28 +30,36 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
   const tooManyCorrections = todaysNegativeCount(childActions) >= 3;
   const templates = useMemo(() => {
     const base = tab === "positive" ? positiveBehaviours : tab === "negative" ? negativeBehaviours : repairActions;
-    const presetWithKeys = base.map((template, index) => ({ ...template, key: `${tab}:${index}` }));
+    const presetWithKeys = base.map((template, index) => ({ ...template, key: `${tab}:${index}`, defaultIndex: index }));
     const overrideByPresetKey = new Map(
       data.customActions
         .filter((action) => action.presetKey)
         .map((action) => [action.presetKey as string, action])
     );
 
-    const mergedPresetTemplates = presetWithKeys.map<BehaviourTemplate>((template) => {
+    const mergedPresetTemplates = presetWithKeys.map((template) => {
       const override = overrideByPresetKey.get(template.key);
-      if (!override) return template;
-      if (override.disabled) return { ...template, title: "", points: 0 };
+      if (!override) return { template, sortIndex: template.defaultIndex, disabled: false };
       return {
-        title: override.title,
-        type: override.category,
-        points: override.points,
-        emoji: template.emoji
+        template: {
+          title: override.title,
+          type: override.category,
+          points: override.points,
+          emoji: template.emoji
+        },
+        sortIndex: override.sortIndex ?? template.defaultIndex,
+        disabled: Boolean(override.disabled)
       };
-    }).filter((template) => Boolean(template.title));
+    }).filter((item) => !item.disabled).sort((a, b) => a.sortIndex - b.sortIndex).map((item) => item.template);
 
     const custom = data.customActions
       .filter((action) => action.category === tab && !action.presetKey && !action.disabled)
-      .map<BehaviourTemplate>((action) => ({ title: action.title, type: action.category, points: action.points, emoji: tab === "negative" ? "🧡" : "✨" }));
+      .map((action, index) => ({
+        template: { title: action.title, type: action.category, points: action.points, emoji: tab === "negative" ? "🧡" : "✨" } as BehaviourTemplate,
+        sortIndex: action.sortIndex ?? 1000 + index
+      }))
+      .sort((a, b) => a.sortIndex - b.sortIndex)
+      .map((item) => item.template);
 
     return [...mergedPresetTemplates, ...custom];
   }, [data.customActions, tab]);

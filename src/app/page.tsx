@@ -67,7 +67,7 @@ export default function HomePage() {
 
       <section>
         <h2 className="mb-3 text-xl font-black">Recent actions</h2>
-        <ActivityTimeline actions={data.actions} childrenList={data.children} limit={5} />
+        <ActivityTimeline actions={data.actions} childrenList={data.children} limit={10} allowChildFilter allowTypeFilter />
       </section>
 
       <AddChildModal open={addChildOpen} onClose={() => setAddChildOpen(false)} />
