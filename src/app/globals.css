@@ -74,15 +74,27 @@ textarea {
   overflow: hidden;
   appearance: none;
   -webkit-appearance: none;
+  line-height: 1.2;
 }
 
 .mobile-date-input::-webkit-datetime-edit {
   padding: 0;
+  line-height: 1.2;
 }
 
 .mobile-date-input::-webkit-date-and-time-value {
   min-width: 0;
   text-align: left;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.mobile-date-input::-webkit-datetime-edit-fields-wrapper {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
 }
 
 .mobile-date-input::-webkit-calendar-picker-indicator {
