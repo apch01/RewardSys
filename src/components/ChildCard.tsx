@@ -20,6 +20,7 @@ export function ChildCard({ child, actions, rewards }: { child: Child; actions: 
             <h2 className="text-xl font-black">{child.name}</h2>
             <p className="text-sm font-bold text-slate-500 dark:text-slate-300">{childLevel(child.points)}</p>
             <p className="text-xs font-extrabold uppercase text-slate-400 dark:text-slate-400">{child.age > 0 ? `Age ${child.age}` : "Age not set"} • {child.gender}</p>
+            {child.bio ? <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-300">{child.bio}</p> : null}
           </div>
         </div>
         <div className="rounded-2xl bg-mint px-3 py-2 text-center text-leaf dark:bg-emerald-950 dark:text-emerald-200">

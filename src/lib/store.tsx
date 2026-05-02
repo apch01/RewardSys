@@ -19,7 +19,7 @@ type StoreContextValue = {
   hydrated: boolean;
   error?: string;
   addChild: (child: Pick<Child, "name" | "avatar" | "age" | "gender" | "bio">) => Promise<void>;
-  updateChild: (id: string, updates: Pick<Child, "name" | "avatar">) => Promise<void>;
+  updateChild: (id: string, updates: Pick<Child, "name" | "avatar" | "age" | "gender" | "bio">) => Promise<void>;
   deleteChild: (id: string) => Promise<void>;
   addAction: (input: AddActionInput) => Promise<Action | undefined>;
   undoAction: (id: string) => Promise<void>;

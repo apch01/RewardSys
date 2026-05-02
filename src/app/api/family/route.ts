@@ -7,7 +7,7 @@ import { Settings } from "@/lib/types";
 
 type FamilyRequest =
   | { type: "addChild"; child: { name: string; avatar: string; age: number; gender: "boy" | "girl" | "other"; bio?: string } }
-  | { type: "updateChild"; id: string; updates: { name: string; avatar: string } }
+  | { type: "updateChild"; id: string; updates: { name: string; avatar: string; age: number; gender: "boy" | "girl" | "other"; bio?: string } }
   | { type: "deleteChild"; id: string }
   | { type: "addAction"; input: { childId: string; title: string; type: "positive" | "negative" | "repair"; points: number; note?: string } }
   | { type: "undoAction"; id: string }

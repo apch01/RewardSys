@@ -21,6 +21,9 @@ export default function ChildProfilePage() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [name, setName] = useState(child?.name ?? "");
   const [avatar, setAvatar] = useState(child?.avatar ?? "⭐");
+  const [ageInput, setAgeInput] = useState(child?.age ? String(child.age) : "");
+  const [gender, setGender] = useState<"boy" | "girl" | "other">(child?.gender ?? "other");
+  const [bio, setBio] = useState(child?.bio ?? "");
 
   const childActions = useMemo(() => child ? actionsForChild(data.actions, child.id) : [], [child, data.actions]);
   const next = child ? nextReward(data.rewards, child.points) : undefined;
@@ -35,7 +38,14 @@ export default function ChildProfilePage() {
 
   function saveEdit(event: FormEvent) {
     event.preventDefault();
-    updateChild(child!.id, { name: name.trim() || child!.name, avatar });
+    const age = Number(ageInput);
+    updateChild(child!.id, {
+      name: name.trim() || child!.name,
+      avatar,
+      age: Number.isFinite(age) && age > 0 ? Math.round(age) : child!.age,
+      gender,
+      bio: bio.trim()
+    });
     setEditing(false);
   }
 
@@ -57,6 +67,15 @@ export default function ChildProfilePage() {
           <form onSubmit={saveEdit} className="space-y-3">
             <input value={avatar} onChange={(event) => setAvatar(event.target.value)} className="mx-auto h-16 w-20 rounded-3xl border border-slate-200 bg-slate-50 text-center text-4xl dark:border-slate-600 dark:bg-slate-900" />
             <input value={name} onChange={(event) => setName(event.target.value)} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center text-xl font-black dark:border-slate-600 dark:bg-slate-900" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input type="number" value={ageInput} onChange={(event) => setAgeInput(event.target.value)} min={1} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center font-black dark:border-slate-600 dark:bg-slate-900" placeholder="Age" />
+              <select value={gender} onChange={(event) => setGender(event.target.value as "boy" | "girl" | "other")} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center font-black dark:border-slate-600 dark:bg-slate-900">
+                <option value="boy">Boy</option>
+                <option value="girl">Girl</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <textarea value={bio} onChange={(event) => setBio(event.target.value)} className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 font-bold dark:border-slate-600 dark:bg-slate-900" placeholder="Bio (optional)" />
             <button className="min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white">Save profile</button>
           </form>
         ) : (
@@ -64,6 +83,8 @@ export default function ChildProfilePage() {
             <div className="mx-auto grid h-24 w-24 place-items-center rounded-[2rem] bg-skywash text-6xl dark:bg-slate-700">{child.avatar}</div>
             <h1 className="mt-3 text-3xl font-black">{child.name}</h1>
             <p className="font-bold text-slate-500 dark:text-slate-300">{childLevel(child.points)}</p>
+            <p className="text-sm font-extrabold uppercase text-slate-400 dark:text-slate-400">Age {child.age} • {child.gender}</p>
+            {child.bio ? <p className="mt-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-200">{child.bio}</p> : null}
             <div className="mt-4 text-5xl font-black text-blueberry dark:text-sky-300">{child.points}</div>
             <div className="text-sm font-extrabold uppercase text-slate-500 dark:text-slate-300">total points</div>
           </>

@@ -85,16 +85,6 @@ export default function RewardsPage() {
         </div>
       </section>
 
-      <form onSubmit={submit} className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <h2 className="text-xl font-black">Custom reward</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_120px]">
-          <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Reward title" />
-          <input type="number" value={costInput} min={1} onChange={(event) => setCostInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
-        </div>
-        <textarea value={description} onChange={(event) => setDescription(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Description" />
-        <button className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Plus className="h-5 w-5" /> Add reward</button>
-      </form>
-
       {data.children.length ? <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800"><label className="text-sm font-extrabold text-slate-500 dark:text-slate-300" htmlFor="reward-child">Redeem for</label><select id="reward-child" value={selectedChild?.id ?? ""} onChange={(event) => setChildId(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-black dark:border-slate-600 dark:bg-slate-900">{data.children.map((child) => <option key={child.id} value={child.id}>{child.avatar} {child.name} - {child.points} points</option>)}</select></section> : null}
 
       <section>
@@ -115,6 +105,16 @@ export default function RewardsPage() {
           </form>
         ) : <RewardCard key={reward.id} reward={reward} canRedeem={Boolean(selectedChild && selectedChild.points >= reward.cost)} onRedeem={selectedChild ? () => redeemReward(reward.id, selectedChild.id) : undefined} onEdit={() => startEdit(reward)} onDelete={() => removeReward(reward)} />)}</div>
       </section>
+
+      <form onSubmit={submit} className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+        <h2 className="text-xl font-black">Custom reward</h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_120px]">
+          <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Reward title" />
+          <input type="number" value={costInput} min={1} onChange={(event) => setCostInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
+        </div>
+        <textarea value={description} onChange={(event) => setDescription(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Description" />
+        <button className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Plus className="h-5 w-5" /> Add reward</button>
+      </form>
 
       {rewardToDelete ? (
         <div className="fixed inset-0 z-50 grid place-items-end bg-slate-900/30 p-3 sm:place-items-center">

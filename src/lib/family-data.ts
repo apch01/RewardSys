@@ -42,7 +42,7 @@ export function addChildToData(data: AppData, child: Pick<Child, "name" | "avata
   return { data: { ...data, children: [...data.children, newChild] } };
 }
 
-export function updateChildInData(data: AppData, id: string, updates: Pick<Child, "name" | "avatar">): FamilyMutationResult {
+export function updateChildInData(data: AppData, id: string, updates: Pick<Child, "name" | "avatar" | "age" | "gender" | "bio">): FamilyMutationResult {
   return { data: { ...data, children: data.children.map((child) => child.id === id ? { ...child, ...updates } : child) } };
 }
 

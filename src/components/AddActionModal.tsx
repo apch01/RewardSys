@@ -37,7 +37,7 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
         .map((action) => [action.presetKey as string, action])
     );
 
-    const mergedPresetTemplates = presetWithKeys.map((template) => {
+    const presetItems = presetWithKeys.map((template) => {
       const override = overrideByPresetKey.get(template.key);
       if (!override) return { template, sortIndex: template.defaultIndex, disabled: false };
       return {
@@ -50,18 +50,18 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
         sortIndex: override.sortIndex ?? template.defaultIndex,
         disabled: Boolean(override.disabled)
       };
-    }).filter((item) => !item.disabled).sort((a, b) => a.sortIndex - b.sortIndex).map((item) => item.template);
+    }).filter((item) => !item.disabled).map((item) => ({ ...item, kind: "preset" as const }));
 
-    const custom = data.customActions
+    const customItems = data.customActions
       .filter((action) => action.category === tab && !action.presetKey && !action.disabled)
       .map((action, index) => ({
         template: { title: action.title, type: action.category, points: action.points, emoji: tab === "negative" ? "🧡" : "✨" } as BehaviourTemplate,
-        sortIndex: action.sortIndex ?? 1000 + index
+        sortIndex: action.sortIndex ?? 1000 + index,
+        kind: "custom" as const
       }))
-      .sort((a, b) => a.sortIndex - b.sortIndex)
-      .map((item) => item.template);
+      .sort((a, b) => a.sortIndex - b.sortIndex);
 
-    return [...mergedPresetTemplates, ...custom];
+    return [...presetItems, ...customItems].sort((a, b) => a.sortIndex - b.sortIndex).map((item) => item.template);
   }, [data.customActions, tab]);
 
   useEffect(() => {
