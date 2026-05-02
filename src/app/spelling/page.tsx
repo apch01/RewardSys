@@ -95,7 +95,7 @@ function PracticeCharacter({ character }: { character: string }) {
         strokeAnimationSpeed: 1,
         delayBetweenLoops: 500
       });
-      writer.animateCharacter({ loop: true });
+      writer.animateCharacter();
     }).catch(() => undefined);
     return () => {
       cancelled = true;

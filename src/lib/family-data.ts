@@ -34,34 +34,36 @@ function normalizeChildLevels(levels: AppData["settings"]["childLevels"] | undef
     .sort((a, b) => b.minPoints - a.minPoints);
 }
 
+function normalizeSpellingData(spellingData: ChildSpellingData | undefined) {
+  if (!spellingData || spellingData.language !== "zh" || !Array.isArray(spellingData.words)) return undefined;
+  const words = spellingData.words
+    .map((word) => ({
+      text: String(word.text || "").trim(),
+      characters: Array.isArray(word.characters) ? word.characters.map((character) => String(character || "").trim()).filter(Boolean) : [],
+      meaning: String(word.meaning || "").trim(),
+      pinyin: String(word.pinyin || "").trim(),
+      uncertain: Boolean(word.uncertain)
+    }))
+    .filter((word) => word.text && word.characters.length);
+  if (!words.length) return undefined;
+  return {
+    title: String(spellingData.title || "Chinese Spelling Practice").trim() || "Chinese Spelling Practice",
+    language: "zh" as const,
+    words,
+    updatedAt: spellingData.updatedAt || new Date().toISOString()
+  };
+}
+
 export function normalizeData(data: Partial<AppData> | null | undefined): AppData {
   return {
     children: (data?.children ?? []).map((child) => ({
       ...child,
       birthday: (child as Child & { age?: number }).birthday ?? birthdayFromLegacyAge((child as Child & { age?: number }).age),
       gender: child.gender ?? "other",
-      bio: child.bio ?? ""
+      bio: child.bio ?? "",
+      spellingData: normalizeSpellingData(child.spellingData)
     })),
     actions: data?.actions ?? [],
-    function normalizeSpellingData(spellingData: ChildSpellingData | undefined) {
-      if (!spellingData || spellingData.language !== "zh" || !Array.isArray(spellingData.words)) return undefined;
-      const words = spellingData.words
-        .map((word) => ({
-          text: String(word.text || "").trim(),
-          characters: Array.isArray(word.characters) ? word.characters.map((character) => String(character || "").trim()).filter(Boolean) : [],
-          meaning: String(word.meaning || "").trim(),
-          pinyin: String(word.pinyin || "").trim(),
-          uncertain: Boolean(word.uncertain)
-        }))
-        .filter((word) => word.text && word.characters.length);
-      if (!words.length) return undefined;
-      return {
-        title: String(spellingData.title || "Chinese Spelling Practice").trim() || "Chinese Spelling Practice",
-        language: "zh" as const,
-        words,
-        updatedAt: spellingData.updatedAt || new Date().toISOString()
-      };
-    }
     rewards: data?.rewards?.length
       ? data.rewards.map((reward) => ({
         ...reward,
@@ -69,8 +71,7 @@ export function normalizeData(data: Partial<AppData> | null | undefined): AppDat
       }))
       : defaultRewards,
     customActions: data?.customActions ?? [],
-          bio: child.bio ?? "",
-          spellingData: normalizeSpellingData(child.spellingData)
+    settings: {
       ...defaultSettings,
       ...(data?.settings ?? {}),
       childLevels: normalizeChildLevels(data?.settings?.childLevels),
@@ -92,6 +93,7 @@ export function updateChildSpellingInData(data: AppData, childId: string, spelli
     }
   };
 }
+
 export function addChildToData(data: AppData, child: Pick<Child, "name" | "avatar" | "birthday" | "gender" | "bio">): FamilyMutationResult {
   const newChild: Child = { id: createId("child"), points: 0, createdAt: new Date().toISOString(), ...child };
   return { data: { ...data, children: [...data.children, newChild] } };
