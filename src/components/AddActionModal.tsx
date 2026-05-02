@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Check, X } from "lucide-react";
+import { Check, CheckCircle2, MinusCircle, X } from "lucide-react";
 import { negativeBehaviours, positiveBehaviours, repairActions } from "@/lib/defaults";
 import { useKindPoints } from "@/lib/store";
 import { ActionType, BehaviourTemplate, Child } from "@/lib/types";
@@ -15,6 +15,7 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
   const [customPoints, setCustomPoints] = useState(10);
   const [saveCustom, setSaveCustom] = useState(false);
   const [lastPoints, setLastPoints] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState<{ points: number; title: string; id: number } | null>(null);
   const [pinAttempt, setPinAttempt] = useState("");
   const [unlocked, setUnlocked] = useState(false);
 
@@ -31,8 +32,16 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
     if (!open) {
       setUnlocked(false);
       setPinAttempt("");
+      setFeedback(null);
+      setLastPoints(null);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!feedback) return;
+    const timeout = window.setTimeout(() => setFeedback(null), 2200);
+    return () => window.clearTimeout(timeout);
+  }, [feedback]);
 
   if (!open || !child) return null;
 
@@ -41,7 +50,10 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
   async function record(template: BehaviourTemplate) {
     if (!child) return;
     const created = await addAction({ childId: child.id, title: template.title, type: template.type, points: template.points, note: note.trim() || undefined });
-    setLastPoints(created?.points ?? null);
+    const points = created?.points ?? 0;
+    setLastPoints(points);
+    setFeedback({ points, title: template.title, id: Date.now() });
+    if (navigator.vibrate) navigator.vibrate(points < 0 ? [35, 30, 35] : 35);
     setNote("");
   }
 
@@ -52,15 +64,33 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
     const points = tab === "negative" ? -Math.abs(customPoints) : Math.abs(customPoints);
     const created = await addAction({ childId: child.id, title: customTitle.trim(), type: tab, points, note: note.trim() || undefined });
     if (saveCustom) await addCustomAction({ title: customTitle.trim(), category: tab, points, note: note.trim() || undefined });
+    const appliedPoints = created?.points ?? points;
+    setFeedback({ points: appliedPoints, title: customTitle.trim(), id: Date.now() });
+    if (navigator.vibrate) navigator.vibrate(appliedPoints < 0 ? [35, 30, 35] : 35);
     setCustomTitle("");
     setNote("");
     setSaveCustom(false);
-    setLastPoints(created?.points ?? points);
+    setLastPoints(appliedPoints);
+  }
+
+  function feedbackText(points: number) {
+    if (points > 0) return `${points} point${points === 1 ? "" : "s"} added`;
+    if (points < 0) return `${Math.abs(points)} point${Math.abs(points) === 1 ? "" : "s"} deducted`;
+    return "No points changed";
   }
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-end bg-slate-900/30 p-3 sm:place-items-center">
       <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+        {feedback ? (
+          <div key={feedback.id} role="status" aria-live="polite" className={cn("fixed left-4 right-4 top-4 z-[60] mx-auto flex max-w-md animate-pop items-center gap-3 rounded-3xl px-4 py-3 font-black shadow-soft sm:absolute sm:left-1/2 sm:right-auto sm:-translate-x-1/2", feedback.points < 0 ? "bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" : feedback.points > 0 ? "bg-mint text-leaf dark:bg-emerald-950 dark:text-emerald-100" : "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-100")}>
+            {feedback.points < 0 ? <MinusCircle className="h-6 w-6 shrink-0" /> : <CheckCircle2 className="h-6 w-6 shrink-0" />}
+            <div>
+              <div>{feedbackText(feedback.points)}</div>
+              <div className="text-xs font-extrabold opacity-80">{feedback.title}</div>
+            </div>
+          </div>
+        ) : null}
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-black">Record action for {child.name}</h2>
@@ -77,7 +107,7 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
           </form>
         ) : (
           <>
-        {lastPoints !== null ? <div className="mb-3 animate-pop rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-200">{lastPoints >= 0 ? "+" : ""}{lastPoints} points added. Nice moment to notice.</div> : null}
+        {lastPoints !== null ? <div className={cn("mb-3 rounded-2xl px-4 py-3 text-sm font-black", lastPoints < 0 ? "bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" : "bg-mint text-leaf dark:bg-emerald-950 dark:text-emerald-200")}>{feedbackText(lastPoints)}.</div> : null}
         {tab === "negative" && tooManyCorrections ? <div className="mb-3 rounded-2xl bg-peach px-4 py-3 text-sm font-black text-amber-900 dark:bg-orange-950 dark:text-orange-100">Pause check: this is several corrections today. Try adding three positive recognitions before another correction.</div> : null}
         {ratio < 3 && childActions.some((action) => action.type === "negative") ? <div className="mb-3 rounded-2xl bg-sunshine px-4 py-3 text-sm font-black text-slate-700 dark:bg-amber-900/40 dark:text-amber-100">Fairness nudge: the current positive-to-correction ratio is below 3:1.</div> : null}
         <div className="grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-700">
