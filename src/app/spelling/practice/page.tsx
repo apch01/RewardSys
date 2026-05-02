@@ -72,7 +72,7 @@ function TestCharacter({ character }: { character: string }) {
         height: 180,
         padding: 8,
         showCharacter: false,
-        showOutline: true,
+        showOutline: false,
         drawingWidth: 12,
         strokeColor: "#1d4ed8"
       });
