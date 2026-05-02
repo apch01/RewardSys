@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { Copy, Download, KeyRound, Link2, MessageSquare, Moon, Send, Shield, Target } from "lucide-react";
+import { ChevronDown, Copy, Download, KeyRound, Link2, MessageSquare, Moon, Send, Shield, Target } from "lucide-react";
 import { useKindPoints } from "@/lib/store";
 
 type ChildLevelDraft = {
@@ -10,6 +10,34 @@ type ChildLevelDraft = {
 };
 
 const reportEmail = "my.kind.points@gmail.com";
+const settingsDraftsStorageKey = "kindpoints-settings-drafts-v1";
+const settingsSectionsStorageKey = "kindpoints-settings-sections-v1";
+
+const defaultChildLevelsDraft: ChildLevelDraft[] = [
+  { title: "Kindness Captain", minPointsInput: "500" },
+  { title: "Teamwork Trailblazer", minPointsInput: "300" },
+  { title: "Growth Guide", minPointsInput: "150" },
+  { title: "Sharing Star", minPointsInput: "75" },
+  { title: "Kindness Sprout", minPointsInput: "0" }
+];
+
+type SectionOpenState = {
+  familySync: boolean;
+  fairness: boolean;
+  goal: boolean;
+  report: boolean;
+  parentLock: boolean;
+  install: boolean;
+};
+
+const defaultSectionOpenState: SectionOpenState = {
+  familySync: true,
+  fairness: true,
+  goal: true,
+  report: true,
+  parentLock: true,
+  install: true
+};
 
 type NavigatorWithStandalone = Navigator & { standalone?: boolean };
 
@@ -52,6 +80,7 @@ export default function SettingsPage() {
   const [savingPin, setSavingPin] = useState(false);
   const [savingFairness, setSavingFairness] = useState(false);
   const [savingGoal, setSavingGoal] = useState(false);
+  const [sectionOpen, setSectionOpen] = useState<SectionOpenState>(defaultSectionOpenState);
 
   useEffect(() => {
     setPinDraft(data.settings.parentPin);
@@ -69,6 +98,68 @@ export default function SettingsPage() {
       minPointsInput: String(level.minPoints)
     })));
   }, [data.settings.allowNegativeBalance, data.settings.dailyNegativeLimit, data.settings.perIncidentNegativeLimit, data.settings.familyGoalEnabled, data.settings.familyGoalTitle, data.settings.familyGoalTarget, data.settings.childLevels]);
+
+  useEffect(() => {
+    try {
+      const savedDraftsRaw = window.localStorage.getItem(settingsDraftsStorageKey);
+      if (savedDraftsRaw) {
+        const savedDrafts = JSON.parse(savedDraftsRaw) as Partial<{
+          pinDraft: string;
+          allowNegativeDraft: boolean;
+          dailyNegativeLimitDraft: string;
+          perIncidentNegativeLimitDraft: string;
+          goalEnabledDraft: boolean;
+          goalTitleDraft: string;
+          goalTargetDraft: string;
+          childLevelsDraft: ChildLevelDraft[];
+        }>;
+        if (typeof savedDrafts.pinDraft === "string") setPinDraft(savedDrafts.pinDraft);
+        if (typeof savedDrafts.allowNegativeDraft === "boolean") setAllowNegativeDraft(savedDrafts.allowNegativeDraft);
+        if (typeof savedDrafts.dailyNegativeLimitDraft === "string") setDailyNegativeLimitDraft(savedDrafts.dailyNegativeLimitDraft);
+        if (typeof savedDrafts.perIncidentNegativeLimitDraft === "string") setPerIncidentNegativeLimitDraft(savedDrafts.perIncidentNegativeLimitDraft);
+        if (typeof savedDrafts.goalEnabledDraft === "boolean") setGoalEnabledDraft(savedDrafts.goalEnabledDraft);
+        if (typeof savedDrafts.goalTitleDraft === "string") setGoalTitleDraft(savedDrafts.goalTitleDraft);
+        if (typeof savedDrafts.goalTargetDraft === "string") setGoalTargetDraft(savedDrafts.goalTargetDraft);
+        if (Array.isArray(savedDrafts.childLevelsDraft) && savedDrafts.childLevelsDraft.length) setChildLevelsDraft(savedDrafts.childLevelsDraft);
+      }
+
+      const savedSectionsRaw = window.localStorage.getItem(settingsSectionsStorageKey);
+      if (savedSectionsRaw) {
+        const savedSections = JSON.parse(savedSectionsRaw) as Partial<SectionOpenState>;
+        setSectionOpen((prev) => ({
+          ...prev,
+          ...savedSections
+        }));
+      }
+    } catch {
+      // Ignore invalid localStorage payloads.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(settingsDraftsStorageKey, JSON.stringify({
+        pinDraft,
+        allowNegativeDraft,
+        dailyNegativeLimitDraft,
+        perIncidentNegativeLimitDraft,
+        goalEnabledDraft,
+        goalTitleDraft,
+        goalTargetDraft,
+        childLevelsDraft
+      }));
+    } catch {
+      // Ignore storage write errors.
+    }
+  }, [pinDraft, allowNegativeDraft, dailyNegativeLimitDraft, perIncidentNegativeLimitDraft, goalEnabledDraft, goalTitleDraft, goalTargetDraft, childLevelsDraft]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(settingsSectionsStorageKey, JSON.stringify(sectionOpen));
+    } catch {
+      // Ignore storage write errors.
+    }
+  }, [sectionOpen]);
 
   useEffect(() => {
     const ua = window.navigator.userAgent.toLowerCase();
@@ -196,6 +287,17 @@ export default function SettingsPage() {
     setChildLevelsDraft((prev) => prev.map((level, levelIndex) => levelIndex === index ? { ...level, ...next } : level));
   }
 
+  function resetChildLevels() {
+    setChildLevelsDraft(defaultChildLevelsDraft.map((level) => ({ ...level })));
+  }
+
+  function toggleSection(section: keyof SectionOpenState) {
+    setSectionOpen((prev) => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  }
+
   async function installApp() {
     if (!installPrompt) return;
     await installPrompt.prompt();
@@ -235,130 +337,176 @@ export default function SettingsPage() {
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <div className="flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-mint text-leaf dark:bg-emerald-950 dark:text-emerald-100"><Link2 className="h-6 w-6" /></span>
-          <div>
-            <h2 className="text-xl font-black">Family sync</h2>
-            <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Use one family sync ID and secret key so both parents see the same children, points, and rewards.</p>
-          </div>
-        </div>
-
-        {family ? (
-          <div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+        <button type="button" onClick={() => toggleSection("familySync")} className="flex w-full items-center justify-between gap-3 text-left">
+          <div className="flex items-center gap-3">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-mint text-leaf dark:bg-emerald-950 dark:text-emerald-100"><Link2 className="h-6 w-6" /></span>
             <div>
-              <div className="text-xs font-extrabold uppercase text-slate-500 dark:text-slate-300">Sync ID</div>
-              <div className="mt-1 rounded-xl bg-white px-3 py-2 font-mono text-sm font-black dark:bg-slate-800">{family.syncId}</div>
-            </div>
-            <div>
-              <div className="text-xs font-extrabold uppercase text-slate-500 dark:text-slate-300">Secret key</div>
-              <div className="mt-1 rounded-xl bg-white px-3 py-2 font-mono text-sm font-black dark:bg-slate-800">{family.syncSecret ?? "Only the first parent can view or revoke the secret."}</div>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {family.isCreator ? <button onClick={copySync} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Copy className="h-5 w-5" /> Copy sync details</button> : null}
-              {family.isCreator ? <button disabled={revokingSecret} onClick={revokeSecret} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 disabled:opacity-60 dark:bg-orange-950 dark:text-orange-100"><KeyRound className="h-5 w-5" /> {revokingSecret ? "Revoking" : "Revoke secret"}</button> : null}
+              <h2 className="text-xl font-black">Family sync</h2>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Use one family sync ID and secret key so both parents see the same children, points, and rewards.</p>
             </div>
           </div>
-        ) : null}
+          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.familySync ? "rotate-180" : ""}`} />
+        </button>
 
-        <form onSubmit={submitJoin} className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
-          <h3 className="font-black">Join an existing family</h3>
-          <input value={syncId} onChange={(event) => setSyncId(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800" placeholder="Sync ID" />
-          <input type="password" value={secret} onChange={(event) => setSecret(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800" placeholder="Secret key" />
-          <button disabled={joiningFamily} className="min-h-12 rounded-2xl bg-slate-900 px-4 py-3 font-black text-white disabled:opacity-60 dark:bg-white dark:text-slate-900">{joiningFamily ? "Connecting" : "Connect family"}</button>
-        </form>
-        {syncMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{syncMessage}</p> : null}
-      </section>
-
-      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <h2 className="text-xl font-black">Fairness safeguards</h2>
-        <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span>Allow points below zero</span><input type="checkbox" checked={allowNegativeDraft} onChange={(event) => setAllowNegativeDraft(event.target.checked)} className="h-6 w-6" /></label>
-        <NumberField label="Daily negative point limit" value={dailyNegativeLimitDraft} onChange={(event) => setDailyNegativeLimitDraft(event.target.value)} />
-        <NumberField label="Per incident negative limit" value={perIncidentNegativeLimitDraft} onChange={(event) => setPerIncidentNegativeLimitDraft(event.target.value)} />
-        <button type="button" disabled={savingFairness} onClick={saveFairness} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingFairness ? "Saving" : "Save fairness safeguards"}</button>
-        {fairnessMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{fairnessMessage}</p> : null}
-      </section>
-
-      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <div className="flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-sunshine text-slate-800 dark:bg-amber-900/40 dark:text-amber-100"><Target className="h-6 w-6" /></span>
-          <div>
-            <h2 className="text-xl font-black">Family team goal</h2>
-            <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Set the shared points target shown on the family dashboard.</p>
-          </div>
-        </div>
-        <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span>Enable family goal on dashboard</span><input type="checkbox" checked={goalEnabledDraft} onChange={(event) => setGoalEnabledDraft(event.target.checked)} className="h-6 w-6" /></label>
-        <label className="mt-4 block">
-          <span className="text-sm font-extrabold text-slate-500 dark:text-slate-300">Goal title</span>
-          <input value={goalTitleDraft} disabled={!goalEnabledDraft} onChange={(event) => setGoalTitleDraft(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900" />
-        </label>
-        <NumberField label="Target points" value={goalTargetDraft} disabled={!goalEnabledDraft} onChange={(event) => setGoalTargetDraft(event.target.value)} />
-        <div className="mt-4 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
-          <h3 className="text-sm font-black uppercase tracking-wide text-slate-500 dark:text-slate-300">Child level defaults</h3>
-          <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-300">Edit level titles and points required.</p>
-          <div className="mt-3 space-y-3">
-            {childLevelsDraft.map((level, index) => (
-              <div key={`${index}-${level.title}`} className="grid gap-2 sm:grid-cols-[1fr_140px]">
-                <input
-                  value={level.title}
-                  onChange={(event) => updateChildLevel(index, { title: event.target.value })}
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800"
-                  placeholder="Level title"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  value={level.minPointsInput}
-                  onChange={(event) => updateChildLevel(index, { minPointsInput: event.target.value })}
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800"
-                  placeholder="Points"
-                />
+        {sectionOpen.familySync ? (
+          <>
+            {family ? (
+              <div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+                <div>
+                  <div className="text-xs font-extrabold uppercase text-slate-500 dark:text-slate-300">Sync ID</div>
+                  <div className="mt-1 rounded-xl bg-white px-3 py-2 font-mono text-sm font-black dark:bg-slate-800">{family.syncId}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-extrabold uppercase text-slate-500 dark:text-slate-300">Secret key</div>
+                  <div className="mt-1 rounded-xl bg-white px-3 py-2 font-mono text-sm font-black dark:bg-slate-800">{family.syncSecret ?? "Only the first parent can view or revoke the secret."}</div>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {family.isCreator ? <button onClick={copySync} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Copy className="h-5 w-5" /> Copy sync details</button> : null}
+                  {family.isCreator ? <button disabled={revokingSecret} onClick={revokeSecret} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 disabled:opacity-60 dark:bg-orange-950 dark:text-orange-100"><KeyRound className="h-5 w-5" /> {revokingSecret ? "Revoking" : "Revoke secret"}</button> : null}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-        <button type="button" disabled={savingGoal} onClick={saveGoal} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingGoal ? "Saving" : "Save goal and levels"}</button>
-        {goalMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{goalMessage}</p> : null}
+            ) : null}
+
+            <form onSubmit={submitJoin} className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+              <h3 className="font-black">Join an existing family</h3>
+              <input value={syncId} onChange={(event) => setSyncId(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800" placeholder="Sync ID" />
+              <input type="password" value={secret} onChange={(event) => setSecret(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800" placeholder="Secret key" />
+              <button disabled={joiningFamily} className="min-h-12 rounded-2xl bg-slate-900 px-4 py-3 font-black text-white disabled:opacity-60 dark:bg-white dark:text-slate-900">{joiningFamily ? "Connecting" : "Connect family"}</button>
+            </form>
+            {syncMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{syncMessage}</p> : null}
+          </>
+        ) : null}
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <div className="flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-skywash text-blueberry dark:bg-slate-700 dark:text-sky-300"><MessageSquare className="h-6 w-6" /></span>
+        <button type="button" onClick={() => toggleSection("fairness")} className="flex w-full items-center justify-between gap-3 text-left">
+          <h2 className="text-xl font-black">Fairness safeguards</h2>
+          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.fairness ? "rotate-180" : ""}`} />
+        </button>
+        {sectionOpen.fairness ? (
+          <>
+            <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span>Allow points below zero</span><input type="checkbox" checked={allowNegativeDraft} onChange={(event) => setAllowNegativeDraft(event.target.checked)} className="h-6 w-6" /></label>
+            <NumberField label="Daily negative point limit" value={dailyNegativeLimitDraft} onChange={(event) => setDailyNegativeLimitDraft(event.target.value)} />
+            <NumberField label="Per incident negative limit" value={perIncidentNegativeLimitDraft} onChange={(event) => setPerIncidentNegativeLimitDraft(event.target.value)} />
+            <button type="button" disabled={savingFairness} onClick={saveFairness} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingFairness ? "Saving" : "Save fairness safeguards"}</button>
+            {fairnessMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{fairnessMessage}</p> : null}
+          </>
+        ) : null}
+      </section>
+
+      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+        <button type="button" onClick={() => toggleSection("goal")} className="flex w-full items-center justify-between gap-3 text-left">
+          <div className="flex items-center gap-3">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-sunshine text-slate-800 dark:bg-amber-900/40 dark:text-amber-100"><Target className="h-6 w-6" /></span>
+            <div>
+              <h2 className="text-xl font-black">Family team goal</h2>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Set the shared points target shown on the family dashboard.</p>
+            </div>
+          </div>
+          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.goal ? "rotate-180" : ""}`} />
+        </button>
+        {sectionOpen.goal ? (
+          <>
+            <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span>Enable family goal on dashboard</span><input type="checkbox" checked={goalEnabledDraft} onChange={(event) => setGoalEnabledDraft(event.target.checked)} className="h-6 w-6" /></label>
+            <label className="mt-4 block">
+              <span className="text-sm font-extrabold text-slate-500 dark:text-slate-300">Goal title</span>
+              <input value={goalTitleDraft} disabled={!goalEnabledDraft} onChange={(event) => setGoalTitleDraft(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900" />
+            </label>
+            <NumberField label="Target points" value={goalTargetDraft} disabled={!goalEnabledDraft} onChange={(event) => setGoalTargetDraft(event.target.value)} />
+            <div className="mt-4 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+              <h3 className="text-sm font-black uppercase tracking-wide text-slate-500 dark:text-slate-300">Child level defaults</h3>
+              <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-300">Edit level titles and points required.</p>
+              <div className="mt-3 space-y-3">
+                {childLevelsDraft.map((level, index) => (
+                  <div key={`${index}-${level.title}`} className="grid gap-2 sm:grid-cols-[1fr_140px]">
+                    <input
+                      value={level.title}
+                      onChange={(event) => updateChildLevel(index, { title: event.target.value })}
+                      className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800"
+                      placeholder="Level title"
+                    />
+                    <label className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 font-bold dark:border-slate-600 dark:bg-slate-800">
+                      <span className="text-slate-400">&gt;</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={level.minPointsInput}
+                        onChange={(event) => updateChildLevel(index, { minPointsInput: event.target.value })}
+                        className="h-full w-full bg-transparent outline-none"
+                        placeholder="points"
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={resetChildLevels} className="mt-3 min-h-10 rounded-xl border border-slate-300 px-3 py-2 text-sm font-black text-slate-700 dark:border-slate-600 dark:text-slate-200">Reset levels to default</button>
+            </div>
+            <button type="button" disabled={savingGoal} onClick={saveGoal} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingGoal ? "Saving" : "Save goal and levels"}</button>
+            {goalMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{goalMessage}</p> : null}
+          </>
+        ) : null}
+      </section>
+
+      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+        <button type="button" onClick={() => toggleSection("report")} className="flex w-full items-center justify-between gap-3 text-left">
+          <div className="flex items-center gap-3">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-skywash text-blueberry dark:bg-slate-700 dark:text-sky-300"><MessageSquare className="h-6 w-6" /></span>
+            <div>
+              <h2 className="text-xl font-black">Report a bug or suggestion</h2>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Send feedback to {reportEmail}.</p>
+            </div>
+          </div>
+          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.report ? "rotate-180" : ""}`} />
+        </button>
+        {sectionOpen.report ? (
+          <form onSubmit={submitReport} className="mt-4 grid gap-3">
+            <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
+              <select value={reportType} onChange={(event) => setReportType(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900">
+                <option>Bug</option>
+                <option>Suggestion</option>
+              </select>
+              <input value={reportTitle} onChange={(event) => setReportTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Short title" required />
+            </div>
+            <textarea value={reportMessage} onChange={(event) => setReportMessage(event.target.value)} className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="What happened, or what would you like to see?" required />
+            <input value={reportContact} onChange={(event) => setReportContact(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Your email or phone, optional" />
+            <button className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Send className="h-5 w-5" /> Send report</button>
+          </form>
+        ) : null}
+      </section>
+
+      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+        <button type="button" onClick={() => toggleSection("parentLock")} className="flex w-full items-center justify-between gap-3 text-left">
+          <h2 className="text-xl font-black">Parent lock and display</h2>
+          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.parentLock ? "rotate-180" : ""}`} />
+        </button>
+        {sectionOpen.parentLock ? (
+          <>
+            <label className="mt-4 block text-sm font-extrabold text-slate-500 dark:text-slate-300" htmlFor="pin">Simple parent PIN</label>
+            <input id="pin" type="password" value={pinDraft} onChange={(event) => setPinDraft(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional PIN" />
+            <button type="button" disabled={savingPin} onClick={savePin} className="mt-3 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingPin ? "Saving" : "Confirm PIN and save"}</button>
+            {pinMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{pinMessage}</p> : null}
+            <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span className="flex items-center gap-2"><Moon className="h-5 w-5" /> Dark mode</span><input type="checkbox" checked={data.settings.darkMode} onChange={(event) => updateSettings({ darkMode: event.target.checked })} className="h-6 w-6" /></label>
+          </>
+        ) : null}
+      </section>
+
+      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+        <button type="button" onClick={() => toggleSection("install")} className="flex w-full items-center justify-between gap-3 text-left">
           <div>
-            <h2 className="text-xl font-black">Report a bug or suggestion</h2>
-            <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Send feedback to {reportEmail}.</p>
+            <h2 className="text-xl font-black">Install app icon</h2>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Add KindPoints to your home screen for app-like access.</p>
           </div>
-        </div>
-        <form onSubmit={submitReport} className="mt-4 grid gap-3">
-          <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
-            <select value={reportType} onChange={(event) => setReportType(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900">
-              <option>Bug</option>
-              <option>Suggestion</option>
-            </select>
-            <input value={reportTitle} onChange={(event) => setReportTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Short title" required />
-          </div>
-          <textarea value={reportMessage} onChange={(event) => setReportMessage(event.target.value)} className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="What happened, or what would you like to see?" required />
-          <input value={reportContact} onChange={(event) => setReportContact(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Your email or phone, optional" />
-          <button className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Send className="h-5 w-5" /> Send report</button>
-        </form>
-      </section>
-
-      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <h2 className="text-xl font-black">Parent lock and display</h2>
-        <label className="mt-4 block text-sm font-extrabold text-slate-500 dark:text-slate-300" htmlFor="pin">Simple parent PIN</label>
-        <input id="pin" type="password" value={pinDraft} onChange={(event) => setPinDraft(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional PIN" />
-        <button type="button" disabled={savingPin} onClick={savePin} className="mt-3 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingPin ? "Saving" : "Confirm PIN and save"}</button>
-        {pinMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{pinMessage}</p> : null}
-        <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span className="flex items-center gap-2"><Moon className="h-5 w-5" /> Dark mode</span><input type="checkbox" checked={data.settings.darkMode} onChange={(event) => updateSettings({ darkMode: event.target.checked })} className="h-6 w-6" /></label>
-      </section>
-
-      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <h2 className="text-xl font-black">Install app icon</h2>
-        <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Add KindPoints to your home screen for app-like access.</p>
-        {isStandalone ? <p className="mt-4 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">KindPoints is already installed on this device.</p> : null}
-        {!isStandalone && installPrompt ? <button type="button" onClick={installApp} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Download className="h-5 w-5" /> Install on this device</button> : null}
-        {!isStandalone && !installPrompt && isIos ? <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-200">On iPhone/iPad Safari: tap Share, then tap Add to Home Screen.</div> : null}
-        {!isStandalone && !installPrompt && !isIos ? <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-200">If install is not available yet, open your browser menu and choose Install app or Add to home screen.</div> : null}
-        {installMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{installMessage}</p> : null}
+          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.install ? "rotate-180" : ""}`} />
+        </button>
+        {sectionOpen.install ? (
+          <>
+            {isStandalone ? <p className="mt-4 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">KindPoints is already installed on this device.</p> : null}
+            {!isStandalone && installPrompt ? <button type="button" onClick={installApp} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Download className="h-5 w-5" /> Install on this device</button> : null}
+            {!isStandalone && !installPrompt && isIos ? <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-200">On iPhone/iPad Safari: tap Share, then tap Add to Home Screen.</div> : null}
+            {!isStandalone && !installPrompt && !isIos ? <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-200">If install is not available yet, open your browser menu and choose Install app or Add to home screen.</div> : null}
+            {installMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{installMessage}</p> : null}
+          </>
+        ) : null}
       </section>
     </div>
   );
