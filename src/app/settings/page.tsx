@@ -1,16 +1,22 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useState } from "react";
-import { Copy, KeyRound, Link2, Moon, Shield } from "lucide-react";
+import { Copy, KeyRound, Link2, MessageSquare, Moon, Send, Shield, Target } from "lucide-react";
 import { useKindPoints } from "@/lib/store";
+
+const reportEmail = "my.kind.points@gmail.com";
 
 export default function SettingsPage() {
   const { data, family, error, updateSettings, joinFamily, rotateSecret } = useKindPoints();
   const [syncId, setSyncId] = useState("");
   const [secret, setSecret] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
+  const [reportType, setReportType] = useState("Bug");
+  const [reportTitle, setReportTitle] = useState("");
+  const [reportMessage, setReportMessage] = useState("");
+  const [reportContact, setReportContact] = useState("");
 
-  function updateNumber(key: "dailyNegativeLimit" | "perIncidentNegativeLimit", event: ChangeEvent<HTMLInputElement>) {
+  function updateNumber(key: "dailyNegativeLimit" | "perIncidentNegativeLimit" | "familyGoalTarget", event: ChangeEvent<HTMLInputElement>) {
     updateSettings({ [key]: Number(event.target.value) });
   }
 
@@ -33,6 +39,22 @@ export default function SettingsPage() {
   async function revokeSecret() {
     await rotateSecret();
     setSyncMessage("Secret key revoked and replaced");
+  }
+
+  function submitReport(event: FormEvent) {
+    event.preventDefault();
+    if (!reportTitle.trim() || !reportMessage.trim()) return;
+
+    const subject = `KindPoints ${reportType}: ${reportTitle.trim()}`;
+    const body = [
+      `Type: ${reportType}`,
+      `Title: ${reportTitle.trim()}`,
+      reportContact.trim() ? `Contact: ${reportContact.trim()}` : "Contact: Not provided",
+      "",
+      reportMessage.trim()
+    ].join("\n");
+
+    window.location.href = `mailto:${reportEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 
   return (
@@ -88,6 +110,43 @@ export default function SettingsPage() {
         <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span>Allow points below zero</span><input type="checkbox" checked={data.settings.allowNegativeBalance} onChange={(event) => updateSettings({ allowNegativeBalance: event.target.checked })} className="h-6 w-6" /></label>
         <NumberField label="Daily negative point limit" value={data.settings.dailyNegativeLimit} onChange={(event) => updateNumber("dailyNegativeLimit", event)} />
         <NumberField label="Per incident negative limit" value={data.settings.perIncidentNegativeLimit} onChange={(event) => updateNumber("perIncidentNegativeLimit", event)} />
+      </section>
+
+      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+        <div className="flex items-center gap-3">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-sunshine text-slate-800 dark:bg-amber-900/40 dark:text-amber-100"><Target className="h-6 w-6" /></span>
+          <div>
+            <h2 className="text-xl font-black">Family team goal</h2>
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Set the shared points target shown on the family dashboard.</p>
+          </div>
+        </div>
+        <label className="mt-4 block">
+          <span className="text-sm font-extrabold text-slate-500 dark:text-slate-300">Goal title</span>
+          <input value={data.settings.familyGoalTitle} onChange={(event) => updateSettings({ familyGoalTitle: event.target.value })} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
+        </label>
+        <NumberField label="Target points" value={data.settings.familyGoalTarget} onChange={(event) => updateNumber("familyGoalTarget", event)} />
+      </section>
+
+      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+        <div className="flex items-center gap-3">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-skywash text-blueberry dark:bg-slate-700 dark:text-sky-300"><MessageSquare className="h-6 w-6" /></span>
+          <div>
+            <h2 className="text-xl font-black">Report a bug or suggestion</h2>
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Send feedback to {reportEmail}.</p>
+          </div>
+        </div>
+        <form onSubmit={submitReport} className="mt-4 grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
+            <select value={reportType} onChange={(event) => setReportType(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900">
+              <option>Bug</option>
+              <option>Suggestion</option>
+            </select>
+            <input value={reportTitle} onChange={(event) => setReportTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Short title" required />
+          </div>
+          <textarea value={reportMessage} onChange={(event) => setReportMessage(event.target.value)} className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="What happened, or what would you like to see?" required />
+          <input value={reportContact} onChange={(event) => setReportContact(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Your email or phone, optional" />
+          <button className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Send className="h-5 w-5" /> Send report</button>
+        </form>
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
