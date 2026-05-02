@@ -12,12 +12,18 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
   const [tab, setTab] = useState<ActionType>("positive");
   const [note, setNote] = useState("");
   const [customTitle, setCustomTitle] = useState("");
-  const [customPoints, setCustomPoints] = useState(10);
+  const [customPointsInput, setCustomPointsInput] = useState("10");
   const [saveCustom, setSaveCustom] = useState(false);
   const [lastPoints, setLastPoints] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{ points: number; title: string; id: number } | null>(null);
   const [pinAttempt, setPinAttempt] = useState("");
   const [unlocked, setUnlocked] = useState(false);
+
+  function parsePoints(input: string) {
+    const parsed = Number(input);
+    if (!Number.isFinite(parsed)) return 1;
+    return Math.max(1, Math.round(Math.abs(parsed)));
+  }
 
   const childActions = child ? actionsForChild(data.actions, child.id) : [];
   const ratio = positiveRatio(childActions);
@@ -61,13 +67,15 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
     event.preventDefault();
     if (!child) return;
     if (!customTitle.trim()) return;
-    const points = tab === "negative" ? -Math.abs(customPoints) : Math.abs(customPoints);
+    const basePoints = parsePoints(customPointsInput);
+    const points = tab === "negative" ? -basePoints : basePoints;
     const created = await addAction({ childId: child.id, title: customTitle.trim(), type: tab, points, note: note.trim() || undefined });
     if (saveCustom) await addCustomAction({ title: customTitle.trim(), category: tab, points, note: note.trim() || undefined });
     const appliedPoints = created?.points ?? points;
     setFeedback({ points: appliedPoints, title: customTitle.trim(), id: Date.now() });
     if (navigator.vibrate) navigator.vibrate(appliedPoints < 0 ? [35, 30, 35] : 35);
     setCustomTitle("");
+    setCustomPointsInput("10");
     setNote("");
     setSaveCustom(false);
     setLastPoints(appliedPoints);
@@ -125,7 +133,7 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
           <h3 className="font-black">Custom behaviour</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_120px]">
             <input value={customTitle} onChange={(event) => setCustomTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800" placeholder="Title" />
-            <input type="number" value={customPoints} onChange={(event) => setCustomPoints(Number(event.target.value))} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800" />
+            <input type="number" value={customPointsInput} onChange={(event) => setCustomPointsInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800" />
           </div>
           <label className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-200"><input type="checkbox" checked={saveCustom} onChange={(event) => setSaveCustom(event.target.checked)} className="h-5 w-5 rounded" /> Save as reusable action</label>
           <button className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Check className="h-5 w-5" /> Add custom action</button>

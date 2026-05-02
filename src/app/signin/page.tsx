@@ -48,8 +48,9 @@ export default function SignInPage() {
       <section className="w-full rounded-3xl bg-white p-6 shadow-soft dark:bg-slate-800">
         <div className="text-center">
           <span className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-sunshine text-4xl shadow-soft">⭐</span>
-          <h1 className="mt-4 text-3xl font-black">Welcome back</h1>
-          <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">Sign in to sync your family points.</p>
+          <p className="mt-4 text-sm font-extrabold uppercase text-blueberry dark:text-sky-300">Growth, kindness, teamwork</p>
+          <h1 className="mt-1 text-3xl font-black">Family Reward Points</h1>
+          <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">Celebrate positive choices, make space for repair, and keep each child on their own path.</p>
         </div>
 
         {searchParams.get("reset") === "success" ? <div className="mt-5 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">Password updated. Sign in with your new password.</div> : null}

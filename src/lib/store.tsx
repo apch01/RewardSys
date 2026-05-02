@@ -24,6 +24,8 @@ type StoreContextValue = {
   addAction: (input: AddActionInput) => Promise<Action | undefined>;
   undoAction: (id: string) => Promise<void>;
   addCustomAction: (input: Omit<CustomAction, "id" | "createdAt">) => Promise<void>;
+  updateCustomAction: (id: string, updates: Pick<CustomAction, "title" | "category" | "points" | "note">) => Promise<void>;
+  deleteCustomAction: (id: string) => Promise<void>;
   addReward: (input: Pick<Reward, "title" | "cost" | "description">) => Promise<void>;
   updateReward: (id: string, updates: Pick<Reward, "title" | "cost" | "description">) => Promise<void>;
   deleteReward: (id: string) => Promise<void>;
@@ -108,6 +110,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addAction: async (input) => (await requestFamily({ type: "addAction", input })).created,
     undoAction: async (id) => { await requestFamily({ type: "undoAction", id }); },
     addCustomAction: async (input) => { await requestFamily({ type: "addCustomAction", input }); },
+    updateCustomAction: async (id, updates) => { await requestFamily({ type: "updateCustomAction", id, updates }); },
+    deleteCustomAction: async (id) => { await requestFamily({ type: "deleteCustomAction", id }); },
     addReward: async (input) => { await requestFamily({ type: "addReward", input }); },
     updateReward: async (id, updates) => { await requestFamily({ type: "updateReward", id, updates }); },
     deleteReward: async (id) => { await requestFamily({ type: "deleteReward", id }); },

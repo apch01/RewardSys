@@ -4,12 +4,13 @@ import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Gift, Home, LogOut, Settings, Sparkles } from "lucide-react";
+import { ClipboardList, Gift, Home, LogOut, Settings, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/rewards", label: "Rewards", icon: Gift },
+  { href: "/actions", label: "Actions", icon: ClipboardList },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
 
@@ -72,7 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
       <main className="mx-auto max-w-5xl px-4 pb-28 pt-5 sm:pb-10">{children}</main>
       {signedIn ? <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-2 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 sm:hidden">
-        <div className="mx-auto grid max-w-sm grid-cols-3 gap-2">
+        <div className="mx-auto grid max-w-sm grid-cols-4 gap-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;

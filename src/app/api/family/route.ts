@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { getFamilyPayload, joinFamily, rotateFamilySecret, updateFamilyData } from "@/lib/db";
-import { addActionToData, addChildToData, addCustomActionToData, addRewardToData, deleteChildFromData, deleteRewardFromData, redeemRewardInData, undoActionInData, updateChildInData, updateRewardInData } from "@/lib/family-data";
+import { addActionToData, addChildToData, addCustomActionToData, addRewardToData, deleteChildFromData, deleteCustomActionFromData, deleteRewardFromData, redeemRewardInData, undoActionInData, updateChildInData, updateCustomActionInData, updateRewardInData } from "@/lib/family-data";
 import { Settings } from "@/lib/types";
 
 type FamilyRequest =
@@ -12,6 +12,8 @@ type FamilyRequest =
   | { type: "addAction"; input: { childId: string; title: string; type: "positive" | "negative" | "repair"; points: number; note?: string } }
   | { type: "undoAction"; id: string }
   | { type: "addCustomAction"; input: { title: string; category: "positive" | "negative" | "repair"; points: number; note?: string } }
+  | { type: "updateCustomAction"; id: string; updates: { title: string; category: "positive" | "negative" | "repair"; points: number; note?: string } }
+  | { type: "deleteCustomAction"; id: string }
   | { type: "addReward"; input: { title: string; cost: number; description: string } }
   | { type: "updateReward"; id: string; updates: { title: string; cost: number; description: string } }
   | { type: "deleteReward"; id: string }
@@ -66,6 +68,10 @@ export async function POST(request: Request) {
           return undoActionInData(data, body.id);
         case "addCustomAction":
           return addCustomActionToData(data, body.input);
+        case "updateCustomAction":
+          return updateCustomActionInData(data, body.id, body.updates);
+        case "deleteCustomAction":
+          return deleteCustomActionFromData(data, body.id);
         case "addReward":
           return addRewardToData(data, body.input);
         case "updateReward":

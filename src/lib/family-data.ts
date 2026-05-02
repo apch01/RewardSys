@@ -95,6 +95,20 @@ export function addCustomActionToData(data: AppData, input: Omit<CustomAction, "
   return { data: { ...data, customActions: [{ id: createId("custom"), ...input, points, createdAt: new Date().toISOString() }, ...data.customActions] } };
 }
 
+export function updateCustomActionInData(data: AppData, id: string, updates: Pick<CustomAction, "title" | "category" | "points" | "note">): FamilyMutationResult {
+  const points = updates.category === "negative" ? -Math.abs(updates.points) : Math.abs(updates.points);
+  return {
+    data: {
+      ...data,
+      customActions: data.customActions.map((action) => action.id === id ? { ...action, ...updates, points } : action)
+    }
+  };
+}
+
+export function deleteCustomActionFromData(data: AppData, id: string): FamilyMutationResult {
+  return { data: { ...data, customActions: data.customActions.filter((action) => action.id !== id) } };
+}
+
 export function addRewardToData(data: AppData, input: Pick<Reward, "title" | "cost" | "description">): FamilyMutationResult {
   const reward: Reward = { id: createId("reward"), ...input, redeemed: false, createdAt: new Date().toISOString() };
   return { data: { ...data, rewards: [reward, ...data.rewards] } };
