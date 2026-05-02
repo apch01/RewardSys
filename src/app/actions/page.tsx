@@ -45,7 +45,7 @@ export default function ActionsPage() {
   const [editNote, setEditNote] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
-  const [touchDropKey, setTouchDropKey] = useState<string | null>(null);
+  const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const presetActions = useMemo(() => {
@@ -174,6 +174,7 @@ export default function ActionsPage() {
     try {
       await persistSortOrder(reordered);
       setDraggingKey(null);
+      setDropTargetKey(null);
     } finally {
       setBusy(false);
     }
@@ -191,26 +192,26 @@ export default function ActionsPage() {
     if (busy) return;
     event.preventDefault();
     setDraggingKey(sourceKey);
-    setTouchDropKey(sourceKey);
+    setDropTargetKey(sourceKey);
   }
 
   function handleTouchMove(event: TouchEvent<HTMLElement>) {
     if (!draggingKey || busy) return;
     event.preventDefault();
     const key = detectTouchDropKey(event);
-    if (key) setTouchDropKey(key);
+    if (key) setDropTargetKey(key);
   }
 
   async function handleTouchEnd(event: TouchEvent<HTMLElement>) {
     if (!draggingKey || busy) return;
     event.preventDefault();
-    const key = detectTouchDropKey(event) ?? touchDropKey;
+    const key = detectTouchDropKey(event) ?? dropTargetKey;
     if (key) {
       await handleDrop(key);
     } else {
       setDraggingKey(null);
     }
-    setTouchDropKey(null);
+    setDropTargetKey(null);
   }
 
   async function submit(event: FormEvent) {
@@ -349,6 +350,7 @@ export default function ActionsPage() {
             {combinedActions.map((item) => {
               const isEditing = editingKey === item.key;
               const isPresetDeleted = item.kind === "preset" && item.isDeleted;
+              const isDropTarget = Boolean(draggingKey && draggingKey !== item.key && dropTargetKey === item.key);
 
               if (isEditing) {
                 return (
@@ -371,16 +373,25 @@ export default function ActionsPage() {
                 <article
                   key={item.key}
                   data-action-key={item.key}
-                  onDragOver={(event: DragEvent<HTMLElement>) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
+                  onDragOver={(event: DragEvent<HTMLElement>) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    if (draggingKey && draggingKey !== item.key) setDropTargetKey(item.key);
+                  }}
                   onDrop={(event: DragEvent<HTMLElement>) => { event.preventDefault(); handleDrop(item.key); }}
-                  onDragEnd={() => setDraggingKey(null)}
-                  className={`select-none rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800 ${draggingKey === item.key ? "opacity-50" : ""}`}
+                  onDragEnd={() => { setDraggingKey(null); setDropTargetKey(null); }}
+                  className={`relative select-none rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800 ${draggingKey === item.key ? "opacity-50" : ""} ${isDropTarget ? "ring-2 ring-blueberry/70 dark:ring-sky-400/70" : ""}`}
                 >
+                  {isDropTarget ? <div className="absolute -top-1 left-4 right-4 h-1 rounded-full bg-blueberry dark:bg-sky-300" /> : null}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2">
                       <span
                         draggable={!busy}
-                        onDragStart={(event: DragEvent<HTMLElement>) => { setDraggingKey(item.key); event.dataTransfer.effectAllowed = "move"; }}
+                        onDragStart={(event: DragEvent<HTMLElement>) => {
+                          setDraggingKey(item.key);
+                          setDropTargetKey(item.key);
+                          event.dataTransfer.effectAllowed = "move";
+                        }}
                         onTouchStart={(event) => handleTouchStart(event, item.key)}
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}

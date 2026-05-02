@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Edit3, Plus, Trash2 } from "lucide-react";
 import { AddActionModal } from "@/components/AddActionModal";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
@@ -24,6 +24,15 @@ export default function ChildProfilePage() {
   const [birthday, setBirthday] = useState(child?.birthday ?? "");
   const [gender, setGender] = useState<"boy" | "girl" | "other">(child?.gender ?? "other");
   const [bio, setBio] = useState(child?.bio ?? "");
+
+  useEffect(() => {
+    if (!child) return;
+    setName(child.name);
+    setAvatar(child.avatar);
+    setBirthday(child.birthday ?? "");
+    setGender(child.gender);
+    setBio(child.bio ?? "");
+  }, [child]);
 
   const childActions = useMemo(() => child ? actionsForChild(data.actions, child.id) : [], [child, data.actions]);
   const next = child ? nextReward(data.rewards, child.points) : undefined;
@@ -68,13 +77,17 @@ export default function ChildProfilePage() {
           <form onSubmit={saveEdit} className="space-y-3">
             <input value={avatar} onChange={(event) => setAvatar(event.target.value)} className="mx-auto h-16 w-20 rounded-3xl border border-slate-200 bg-slate-50 text-center text-4xl dark:border-slate-600 dark:bg-slate-900" />
             <input value={name} onChange={(event) => setName(event.target.value)} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center text-xl font-black dark:border-slate-600 dark:bg-slate-900" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} max={new Date().toISOString().slice(0, 10)} className="h-12 w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center font-black dark:border-slate-600 dark:bg-slate-900" />
-              <select value={gender} onChange={(event) => setGender(event.target.value as "boy" | "girl" | "other")} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center font-black dark:border-slate-600 dark:bg-slate-900">
-                <option value="boy">Boy</option>
-                <option value="girl">Girl</option>
-                <option value="other">Other</option>
-              </select>
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+              <div className="min-w-0">
+                <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} max={new Date().toISOString().slice(0, 10)} className="block h-12 w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold dark:border-slate-600 dark:bg-slate-900" />
+              </div>
+              <div className="min-w-0">
+                <select value={gender} onChange={(event) => setGender(event.target.value as "boy" | "girl" | "other")} className="block h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center font-black dark:border-slate-600 dark:bg-slate-900">
+                  <option value="boy">Boy</option>
+                  <option value="girl">Girl</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
             </div>
             <textarea value={bio} onChange={(event) => setBio(event.target.value)} className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 font-bold dark:border-slate-600 dark:bg-slate-900" placeholder="Bio (optional)" />
             <button className="min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white">Save profile</button>
