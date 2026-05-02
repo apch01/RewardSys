@@ -5,6 +5,7 @@ import { signOut, useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ClipboardList, Gift, Home, LogOut, Settings, Sparkles } from "lucide-react";
+import { useKindPoints } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, status } = useSession();
+  const { hydrated } = useKindPoints();
 
   useEffect(() => {
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
@@ -35,11 +37,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [isPublicPage, router, status]);
 
   if (status === "loading") {
-    return <div className="grid min-h-screen place-items-center bg-[#f7fbff] font-black text-blueberry dark:bg-slate-900 dark:text-sky-300">Loading KindPoints...</div>;
+    return <AppLoader message="Opening KindPoints" />;
   }
 
   if (!signedIn && !isPublicPage) {
-    return <div className="grid min-h-screen place-items-center bg-[#f7fbff] font-black text-blueberry dark:bg-slate-900 dark:text-sky-300">Opening sign in...</div>;
+    return <AppLoader message="Opening sign in" />;
+  }
+
+  if (signedIn && !hydrated) {
+    return <AppLoader message="Syncing your family" />;
   }
 
   return (
@@ -86,6 +92,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav> : null}
+    </div>
+  );
+}
+
+function AppLoader({ message }: { message: string }) {
+  return (
+    <div className="relative grid min-h-screen overflow-hidden bg-[#f7fbff] px-6 text-slate-900 dark:bg-slate-950 dark:text-white">
+      <div className="absolute left-1/2 top-24 h-56 w-56 -translate-x-1/2 rounded-full bg-sky-200/60 blur-3xl dark:bg-sky-700/30" />
+      <div className="absolute bottom-12 right-[-5rem] h-60 w-60 rounded-full bg-emerald-200/60 blur-3xl dark:bg-emerald-700/20" />
+      <div className="relative mx-auto flex w-full max-w-sm flex-col items-center justify-center text-center">
+        <div className="relative grid h-28 w-28 place-items-center rounded-[2rem] bg-white shadow-soft dark:bg-slate-900">
+          <div className="absolute inset-[-10px] animate-loaderSpin rounded-[2.4rem] bg-[conic-gradient(from_0deg,#2563eb,#38bdf8,#facc15,#2563eb)] opacity-90" />
+          <div className="relative grid h-24 w-24 place-items-center rounded-[1.75rem] bg-white dark:bg-slate-900">
+            <span className="text-5xl">⭐</span>
+          </div>
+        </div>
+        <h1 className="mt-7 text-3xl font-black tracking-tight text-blueberry dark:text-sky-300">KindPoints</h1>
+        <p className="mt-2 text-sm font-extrabold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">{message}</p>
+        <div className="mt-6 flex items-center gap-2" aria-hidden="true">
+          <span className="h-2.5 w-2.5 animate-loaderBounce rounded-full bg-blueberry [animation-delay:-0.2s] dark:bg-sky-300" />
+          <span className="h-2.5 w-2.5 animate-loaderBounce rounded-full bg-blueberry [animation-delay:-0.1s] dark:bg-sky-300" />
+          <span className="h-2.5 w-2.5 animate-loaderBounce rounded-full bg-blueberry dark:bg-sky-300" />
+        </div>
+      </div>
     </div>
   );
 }

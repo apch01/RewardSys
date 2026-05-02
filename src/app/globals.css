@@ -40,3 +40,28 @@ textarea {
 .safe-bottom {
   padding-bottom: max(0.75rem, calc(env(safe-area-inset-bottom) + 0.5rem));
 }
+
+@keyframes loaderSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loaderBounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  40% {
+    transform: translateY(-0.45rem);
+    opacity: 1;
+  }
+}
+
+.animate-loaderSpin {
+  animation: loaderSpin 1.8s linear infinite;
+}
+
+.animate-loaderBounce {
+  animation: loaderBounce 1s ease-in-out infinite;
+}
