@@ -37,15 +37,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [isPublicPage, router, status]);
 
   if (status === "loading") {
-    return <AppLoader message="Opening KindPoints" />;
+    return <AppLoader message="Loading KindPoints" />;
   }
 
   if (!signedIn && !isPublicPage) {
-    return <AppLoader message="Opening sign in" />;
+    return <AppLoader message="Sign In to KindPoints" />;
   }
 
   if (signedIn && !hydrated) {
-    return <AppLoader message="Syncing your family" />;
+    return <AppLoader message="Syncing Your Family" />;
   }
 
   return (
