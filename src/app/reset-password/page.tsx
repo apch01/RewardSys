@@ -7,11 +7,13 @@ import { KeyRound } from "lucide-react";
 export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") ?? "";
+  const tokenFromUrl = searchParams.get("token") ?? "";
+  const [manualToken, setManualToken] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const token = tokenFromUrl || manualToken.trim();
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -47,9 +49,10 @@ export default function ResetPasswordPage() {
           <h1 className="mt-4 text-3xl font-black">Choose new password</h1>
           <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">Use at least 8 characters.</p>
         </div>
-        {!token ? <div className="mt-5 rounded-2xl bg-peach px-4 py-3 text-sm font-black text-amber-950 dark:bg-orange-950 dark:text-orange-100">Reset token is missing.</div> : null}
+        {!tokenFromUrl ? <div className="mt-5 rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-600 dark:bg-slate-900 dark:text-slate-200">Paste the token from your reset link, or open the link directly from your email.</div> : null}
         {error ? <div className="mt-5 rounded-2xl bg-peach px-4 py-3 text-sm font-black text-amber-950 dark:bg-orange-950 dark:text-orange-100">{error}</div> : null}
         <form onSubmit={submit} className="mt-6 space-y-3">
+          {!tokenFromUrl ? <input value={manualToken} onChange={(event) => setManualToken(event.target.value)} className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Reset token" required /> : null}
           <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="New password" autoComplete="new-password" required />
           <input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Confirm new password" autoComplete="new-password" required />
           <button disabled={loading || !token} className="min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-70">{loading ? "Saving" : "Save new password"}</button>

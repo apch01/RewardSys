@@ -18,21 +18,26 @@ export default function ForgotPasswordPage() {
     setDevResetUrl("");
     setLoading(true);
 
-    const response = await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email })
-    });
-    const payload = await response.json() as { error?: string; devResetUrl?: string };
-    setLoading(false);
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const payload = await response.json().catch(() => ({})) as { error?: string; devResetUrl?: string };
 
-    if (!response.ok) {
-      setError(payload.error ?? "Could not request a reset link.");
-      return;
+      if (!response.ok) {
+        setError(payload.error ?? "Could not request a reset link. Please try again.");
+        return;
+      }
+
+      setMessage("If an account exists for that email, a reset link has been sent.");
+      setDevResetUrl(payload.devResetUrl ?? "");
+    } catch {
+      setError("Could not reach the reset service. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    setMessage("If an account exists for that email, a reset link has been sent.");
-    setDevResetUrl(payload.devResetUrl ?? "");
   }
 
   return (
@@ -52,7 +57,10 @@ export default function ForgotPasswordPage() {
           <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Email" autoComplete="email" required />
           <button disabled={loading} className="min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-70">{loading ? "Sending" : "Send reset link"}</button>
         </form>
-        <p className="mt-4 text-center text-sm font-bold text-slate-500 dark:text-slate-300"><Link href="/signin" className="text-blueberry dark:text-sky-300">Back to sign in</Link></p>
+        <div className="mt-4 flex items-center justify-between gap-3 text-sm font-bold">
+          <Link href="/signin" className="text-blueberry dark:text-sky-300">Back to sign in</Link>
+          <Link href="/reset-password" className="text-slate-500 dark:text-slate-300">I have a reset link</Link>
+        </div>
       </section>
     </div>
   );

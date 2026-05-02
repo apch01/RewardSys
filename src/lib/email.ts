@@ -1,6 +1,6 @@
 export async function sendPasswordResetEmail(input: { to: string; resetUrl: string }) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "KindPoints <noreply@kindpoints.app>";
+  const from = process.env.EMAIL_FROM ?? "KindPoints <onboarding@resend.dev>";
   const replyTo = process.env.EMAIL_REPLY_TO;
 
   if (!apiKey) {
@@ -26,6 +26,8 @@ export async function sendPasswordResetEmail(input: { to: string; resetUrl: stri
   });
 
   if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    console.error("Resend password reset email failed", { status: response.status, detail });
     throw new Error("Password reset email could not be sent.");
   }
 }
