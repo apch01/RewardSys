@@ -1,10 +1,17 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { Copy, KeyRound, Link2, MessageSquare, Moon, Send, Shield, Target } from "lucide-react";
+import { Copy, Download, KeyRound, Link2, MessageSquare, Moon, Send, Shield, Target } from "lucide-react";
 import { useKindPoints } from "@/lib/store";
 
 const reportEmail = "my.kind.points@gmail.com";
+
+type NavigatorWithStandalone = Navigator & { standalone?: boolean };
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
 
 export default function SettingsPage() {
   const { data, family, error, updateSettings, joinFamily, rotateSecret } = useKindPoints();
@@ -17,10 +24,47 @@ export default function SettingsPage() {
   const [reportContact, setReportContact] = useState("");
   const [pinDraft, setPinDraft] = useState(data.settings.parentPin);
   const [pinMessage, setPinMessage] = useState("");
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installMessage, setInstallMessage] = useState("");
+  const [isIos, setIsIos] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     setPinDraft(data.settings.parentPin);
   }, [data.settings.parentPin]);
+
+  useEffect(() => {
+    const ua = window.navigator.userAgent.toLowerCase();
+    setIsIos(/iphone|ipad|ipod/.test(ua));
+
+    function detectStandalone() {
+      const byMedia = window.matchMedia("(display-mode: standalone)").matches;
+      const byNavigator = Boolean((window.navigator as NavigatorWithStandalone).standalone);
+      setIsStandalone(byMedia || byNavigator);
+    }
+
+    function onBeforeInstallPrompt(event: Event) {
+      const promptEvent = event as BeforeInstallPromptEvent;
+      promptEvent.preventDefault();
+      setInstallPrompt(promptEvent);
+    }
+
+    function onAppInstalled() {
+      setInstallPrompt(null);
+      setInstallMessage("App installed.");
+      detectStandalone();
+      window.setTimeout(() => setInstallMessage(""), 1800);
+    }
+
+    detectStandalone();
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.addEventListener("appinstalled", onAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", onAppInstalled);
+    };
+  }, []);
 
   function updateNumber(key: "dailyNegativeLimit" | "perIncidentNegativeLimit" | "familyGoalTarget", event: ChangeEvent<HTMLInputElement>) {
     updateSettings({ [key]: Number(event.target.value) });
@@ -51,6 +95,15 @@ export default function SettingsPage() {
     await updateSettings({ parentPin: pinDraft.trim() });
     setPinMessage(pinDraft.trim() ? "PIN saved" : "PIN removed");
     window.setTimeout(() => setPinMessage(""), 1600);
+  }
+
+  async function installApp() {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    setInstallPrompt(null);
+    setInstallMessage(choice.outcome === "accepted" ? "Install started. Check your home screen." : "Install was canceled.");
+    window.setTimeout(() => setInstallMessage(""), 1800);
   }
 
   function submitReport(event: FormEvent) {
@@ -168,6 +221,16 @@ export default function SettingsPage() {
         <button type="button" onClick={savePin} className="mt-3 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white">Confirm PIN and save</button>
         {pinMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{pinMessage}</p> : null}
         <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span className="flex items-center gap-2"><Moon className="h-5 w-5" /> Dark mode</span><input type="checkbox" checked={data.settings.darkMode} onChange={(event) => updateSettings({ darkMode: event.target.checked })} className="h-6 w-6" /></label>
+      </section>
+
+      <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+        <h2 className="text-xl font-black">Install app icon</h2>
+        <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Add KindPoints to your home screen for app-like access.</p>
+        {isStandalone ? <p className="mt-4 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">KindPoints is already installed on this device.</p> : null}
+        {!isStandalone && installPrompt ? <button type="button" onClick={installApp} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Download className="h-5 w-5" /> Install on this device</button> : null}
+        {!isStandalone && !installPrompt && isIos ? <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-200">On iPhone/iPad Safari: tap Share, then tap Add to Home Screen.</div> : null}
+        {!isStandalone && !installPrompt && !isIos ? <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-200">If install is not available yet, open your browser menu and choose Install app or Add to home screen.</div> : null}
+        {installMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{installMessage}</p> : null}
       </section>
     </div>
   );
