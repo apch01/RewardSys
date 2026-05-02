@@ -11,8 +11,8 @@ type FamilyRequest =
   | { type: "deleteChild"; id: string }
   | { type: "addAction"; input: { childId: string; title: string; type: "positive" | "negative" | "repair"; points: number; note?: string } }
   | { type: "undoAction"; id: string }
-  | { type: "addCustomAction"; input: { title: string; category: "positive" | "negative" | "repair"; points: number; note?: string } }
-  | { type: "updateCustomAction"; id: string; updates: { title: string; category: "positive" | "negative" | "repair"; points: number; note?: string } }
+  | { type: "addCustomAction"; input: { title: string; category: "positive" | "negative" | "repair"; points: number; note?: string; presetKey?: string } }
+  | { type: "updateCustomAction"; id: string; updates: { title: string; category: "positive" | "negative" | "repair"; points: number; note?: string; presetKey?: string } }
   | { type: "deleteCustomAction"; id: string }
   | { type: "addReward"; input: { title: string; cost: number; description: string } }
   | { type: "updateReward"; id: string; updates: { title: string; cost: number; description: string } }

@@ -35,6 +35,7 @@ export type CustomAction = {
   category: ActionType;
   points: number;
   note?: string;
+  presetKey?: string;
   createdAt: string;
 };
 

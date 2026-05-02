@@ -29,9 +29,30 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
   const ratio = positiveRatio(childActions);
   const tooManyCorrections = todaysNegativeCount(childActions) >= 3;
   const templates = useMemo(() => {
-    const custom = data.customActions.filter((action) => action.category === tab).map<BehaviourTemplate>((action) => ({ title: action.title, type: action.category, points: action.points, emoji: tab === "negative" ? "🧡" : "✨" }));
     const base = tab === "positive" ? positiveBehaviours : tab === "negative" ? negativeBehaviours : repairActions;
-    return [...base, ...custom];
+    const presetWithKeys = base.map((template, index) => ({ ...template, key: `${tab}:${index}` }));
+    const overrideByPresetKey = new Map(
+      data.customActions
+        .filter((action) => action.presetKey)
+        .map((action) => [action.presetKey as string, action])
+    );
+
+    const mergedPresetTemplates = presetWithKeys.map<BehaviourTemplate>((template) => {
+      const override = overrideByPresetKey.get(template.key);
+      if (!override) return template;
+      return {
+        title: override.title,
+        type: override.category,
+        points: override.points,
+        emoji: template.emoji
+      };
+    });
+
+    const custom = data.customActions
+      .filter((action) => action.category === tab && !action.presetKey)
+      .map<BehaviourTemplate>((action) => ({ title: action.title, type: action.category, points: action.points, emoji: tab === "negative" ? "🧡" : "✨" }));
+
+    return [...mergedPresetTemplates, ...custom];
   }, [data.customActions, tab]);
 
   useEffect(() => {
