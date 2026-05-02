@@ -10,10 +10,14 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/spelling", label: "Spelling", icon: BookText },
   { href: "/rewards", label: "Rewards", icon: Gift },
   { href: "/actions", label: "Actions", icon: ClipboardList },
   { href: "/settings", label: "Settings", icon: Settings }
+];
+
+const appMenuItems = [
+  { href: "/", label: "KindPoints", icon: Home },
+  { href: "/spelling", label: "Spelling", icon: BookText }
 ];
 
 const publicPaths = ["/signin", "/signup", "/forgot-password", "/reset-password"];
@@ -100,9 +104,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
             </div>
             <div className="space-y-2">
-              {navItems.map((item) => {
+              {appMenuItems.map((item) => {
                 const Icon = item.icon;
-                const active = pathname === item.href;
+                const active = item.href === "/spelling" ? pathname.startsWith("/spelling") : !pathname.startsWith("/spelling");
                 return (
                   <Link key={item.href} href={item.href} className={cn("flex min-h-12 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-black", active ? "bg-blueberry text-white" : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800")}>
                     <Icon className="h-5 w-5" />
@@ -116,7 +120,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       ) : null}
       <main className="mx-auto max-w-5xl px-4 pb-28 pt-5 sm:pb-10">{children}</main>
       {signedIn ? <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-2 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 sm:hidden">
-        <div className="mx-auto grid max-w-sm grid-cols-5 gap-2">
+        <div className="mx-auto grid max-w-sm grid-cols-4 gap-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
