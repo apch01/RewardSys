@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { Copy, KeyRound, Link2, MessageSquare, Moon, Send, Shield, Target } from "lucide-react";
 import { useKindPoints } from "@/lib/store";
 
@@ -15,6 +15,12 @@ export default function SettingsPage() {
   const [reportTitle, setReportTitle] = useState("");
   const [reportMessage, setReportMessage] = useState("");
   const [reportContact, setReportContact] = useState("");
+  const [pinDraft, setPinDraft] = useState(data.settings.parentPin);
+  const [pinMessage, setPinMessage] = useState("");
+
+  useEffect(() => {
+    setPinDraft(data.settings.parentPin);
+  }, [data.settings.parentPin]);
 
   function updateNumber(key: "dailyNegativeLimit" | "perIncidentNegativeLimit" | "familyGoalTarget", event: ChangeEvent<HTMLInputElement>) {
     updateSettings({ [key]: Number(event.target.value) });
@@ -39,6 +45,12 @@ export default function SettingsPage() {
   async function revokeSecret() {
     await rotateSecret();
     setSyncMessage("Secret key revoked and replaced");
+  }
+
+  async function savePin() {
+    await updateSettings({ parentPin: pinDraft.trim() });
+    setPinMessage(pinDraft.trim() ? "PIN saved" : "PIN removed");
+    window.setTimeout(() => setPinMessage(""), 1600);
   }
 
   function submitReport(event: FormEvent) {
@@ -152,7 +164,9 @@ export default function SettingsPage() {
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
         <h2 className="text-xl font-black">Parent lock and display</h2>
         <label className="mt-4 block text-sm font-extrabold text-slate-500 dark:text-slate-300" htmlFor="pin">Simple parent PIN</label>
-        <input id="pin" type="password" value={data.settings.parentPin} onChange={(event) => updateSettings({ parentPin: event.target.value })} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional PIN" />
+        <input id="pin" type="password" value={pinDraft} onChange={(event) => setPinDraft(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional PIN" />
+        <button type="button" onClick={savePin} className="mt-3 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white">Confirm PIN and save</button>
+        {pinMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{pinMessage}</p> : null}
         <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span className="flex items-center gap-2"><Moon className="h-5 w-5" /> Dark mode</span><input type="checkbox" checked={data.settings.darkMode} onChange={(event) => updateSettings({ darkMode: event.target.checked })} className="h-6 w-6" /></label>
       </section>
     </div>

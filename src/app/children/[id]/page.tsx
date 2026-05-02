@@ -18,6 +18,7 @@ export default function ChildProfilePage() {
   const child = data.children.find((item) => item.id === params.id);
   const [actionOpen, setActionOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [name, setName] = useState(child?.name ?? "");
   const [avatar, setAvatar] = useState(child?.avatar ?? "⭐");
 
@@ -38,8 +39,9 @@ export default function ChildProfilePage() {
     setEditing(false);
   }
 
-  function removeChild() {
+  function confirmRemoveChild() {
     if (!child) return;
+    setConfirmDeleteOpen(false);
     deleteChild(child.id);
     router.push("/");
   }
@@ -69,7 +71,7 @@ export default function ChildProfilePage() {
         <div className="mt-5 grid grid-cols-3 gap-2">
           <button onClick={() => setActionOpen(true)} className="flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-blueberry px-3 py-2 text-sm font-black text-white"><Plus className="h-4 w-4" /> Action</button>
           <button onClick={() => setEditing((value) => !value)} className="flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-slate-100 px-3 py-2 text-sm font-black dark:bg-slate-700"><Edit3 className="h-4 w-4" /> Edit</button>
-          <button onClick={removeChild} className="flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-peach px-3 py-2 text-sm font-black text-amber-950 dark:bg-orange-950 dark:text-orange-100"><Trash2 className="h-4 w-4" /> Delete</button>
+          <button onClick={() => setConfirmDeleteOpen(true)} className="flex min-h-12 items-center justify-center gap-1 rounded-2xl bg-peach px-3 py-2 text-sm font-black text-amber-950 dark:bg-orange-950 dark:text-orange-100"><Trash2 className="h-4 w-4" /> Delete</button>
         </div>
       </section>
 
@@ -106,6 +108,19 @@ export default function ChildProfilePage() {
       </section>
 
       <AddActionModal open={actionOpen} child={child} onClose={() => setActionOpen(false)} />
+
+      {confirmDeleteOpen ? (
+        <div className="fixed inset-0 z-50 grid place-items-end bg-slate-900/30 p-3 sm:place-items-center">
+          <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
+            <h2 className="text-xl font-black">Delete child profile?</h2>
+            <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">This will remove {child.name}&apos;s profile and activity history. This action cannot be undone.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setConfirmDeleteOpen(false)} className="flex min-h-12 items-center justify-center rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-700 dark:bg-slate-700 dark:text-slate-100">Cancel</button>
+              <button type="button" onClick={confirmRemoveChild} className="flex min-h-12 items-center justify-center rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 dark:bg-orange-950 dark:text-orange-100">Yes, delete</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

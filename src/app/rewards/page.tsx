@@ -9,33 +9,41 @@ import { Reward } from "@/lib/types";
 export default function RewardsPage() {
   const { data, addReward, updateReward, deleteReward, redeemReward } = useKindPoints();
   const [title, setTitle] = useState("");
-  const [cost, setCost] = useState(50);
+  const [costInput, setCostInput] = useState("50");
   const [description, setDescription] = useState("");
   const [childId, setChildId] = useState(data.children[0]?.id ?? "");
   const [editingRewardId, setEditingRewardId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  const [editCost, setEditCost] = useState(50);
+  const [editCostInput, setEditCostInput] = useState("50");
   const [editDescription, setEditDescription] = useState("");
+
+  function parsePointValue(input: string, fallback: number) {
+    const parsed = Number(input);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(1, Math.round(parsed));
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!title.trim()) return;
+    const cost = parsePointValue(costInput, 50);
     await addReward({ title: title.trim(), cost, description: description.trim() || "A family-approved reward." });
     setTitle("");
-    setCost(50);
+    setCostInput("50");
     setDescription("");
   }
 
   function startEdit(reward: Reward) {
     setEditingRewardId(reward.id);
     setEditTitle(reward.title);
-    setEditCost(reward.cost);
+    setEditCostInput(String(reward.cost));
     setEditDescription(reward.description);
   }
 
   async function saveEdit(event: FormEvent) {
     event.preventDefault();
     if (!editingRewardId || !editTitle.trim()) return;
+    const editCost = parsePointValue(editCostInput, 50);
     await updateReward(editingRewardId, { title: editTitle.trim(), cost: editCost, description: editDescription.trim() || "A family-approved reward." });
     setEditingRewardId(null);
   }
@@ -64,7 +72,7 @@ export default function RewardsPage() {
         <h2 className="text-xl font-black">Custom reward</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_120px]">
           <input value={title} onChange={(event) => setTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Reward title" />
-          <input type="number" value={cost} min={1} onChange={(event) => setCost(Number(event.target.value))} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
+          <input type="number" value={costInput} min={1} onChange={(event) => setCostInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
         </div>
         <textarea value={description} onChange={(event) => setDescription(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Description" />
         <button className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Plus className="h-5 w-5" /> Add reward</button>
@@ -79,7 +87,7 @@ export default function RewardsPage() {
             <h3 className="font-black">Edit reward</h3>
             <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_110px]">
               <input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Reward title" />
-              <input type="number" value={editCost} min={1} onChange={(event) => setEditCost(Number(event.target.value))} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
+              <input type="number" value={editCostInput} min={1} onChange={(event) => setEditCostInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
             </div>
             <textarea value={editDescription} onChange={(event) => setEditDescription(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Description" />
             <div className="mt-3 grid grid-cols-2 gap-2">
