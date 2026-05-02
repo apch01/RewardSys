@@ -1,3 +1,5 @@
+import { Resend } from "resend";
+
 export async function sendPasswordResetEmail(input: { to: string; resetUrl: string }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM ?? "KindPoints <onboarding@resend.dev>";
@@ -10,24 +12,32 @@ export async function sendPasswordResetEmail(input: { to: string; resetUrl: stri
     return;
   }
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      from,
-      to: input.to,
-      reply_to: replyTo,
-      subject: "Reset your KindPoints password",
-      html: `<p>Use this link to reset your KindPoints password:</p><p><a href="${input.resetUrl}">${input.resetUrl}</a></p><p>This link expires in 1 hour.</p>`
-    })
+  const resend = new Resend(apiKey);
+  const { error } = await resend.emails.send({
+    from,
+    to: input.to,
+    subject: "Reset your KindPoints password",
+    html: `<p>Use this link to reset your KindPoints password:</p><p><a href="${input.resetUrl}">${input.resetUrl}</a></p><p>This link expires in 1 hour.</p>`,
+    ...(replyTo ? { replyTo } : {})
   });
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    console.error("Resend password reset email failed", { status: response.status, detail });
+  if (error) {
+    const detail = getResendErrorMessage(error);
+    console.error("Resend password reset email failed", error);
+
+    if (process.env.NODE_ENV !== "production" && detail) {
+      throw new Error(`Password reset email could not be sent: ${detail}`);
+    }
+
     throw new Error("Password reset email could not be sent.");
   }
+}
+
+function getResendErrorMessage(error: unknown) {
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    return typeof message === "string" ? message : undefined;
+  }
+
+  return undefined;
 }
