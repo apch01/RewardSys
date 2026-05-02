@@ -337,15 +337,13 @@ export default function SettingsPage() {
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <button type="button" onClick={() => toggleSection("familySync")} className="flex w-full items-center justify-between gap-3 text-left">
-          <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-mint text-leaf dark:bg-emerald-950 dark:text-emerald-100"><Link2 className="h-6 w-6" /></span>
-            <div>
-              <h2 className="text-xl font-black">Family sync</h2>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Use one family sync ID and secret key so both parents see the same children, points, and rewards.</p>
-            </div>
+        <button type="button" onClick={() => toggleSection("familySync")} className="flex w-full items-center gap-3 text-left">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-mint text-leaf dark:bg-emerald-950 dark:text-emerald-100"><Link2 className="h-6 w-6" /></span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-black">Family sync</h2>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Use one family sync ID and secret key so both parents see the same children, points, and rewards.</p>
           </div>
-          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.familySync ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition-transform ${sectionOpen.familySync ? "rotate-180" : ""}`} />
         </button>
 
         {sectionOpen.familySync ? (
@@ -379,9 +377,13 @@ export default function SettingsPage() {
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <button type="button" onClick={() => toggleSection("fairness")} className="flex w-full items-center justify-between gap-3 text-left">
-          <h2 className="text-xl font-black">Fairness safeguards</h2>
-          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.fairness ? "rotate-180" : ""}`} />
+        <button type="button" onClick={() => toggleSection("fairness")} className="flex w-full items-center gap-3 text-left">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100"><Shield className="h-6 w-6" /></span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-black">Fairness safeguards</h2>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Keep corrections balanced with daily and per-incident limits.</p>
+          </div>
+          <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition-transform ${sectionOpen.fairness ? "rotate-180" : ""}`} />
         </button>
         {sectionOpen.fairness ? (
           <>
@@ -395,15 +397,13 @@ export default function SettingsPage() {
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <button type="button" onClick={() => toggleSection("goal")} className="flex w-full items-center justify-between gap-3 text-left">
-          <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-sunshine text-slate-800 dark:bg-amber-900/40 dark:text-amber-100"><Target className="h-6 w-6" /></span>
-            <div>
-              <h2 className="text-xl font-black">Family team goal</h2>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Set the shared points target shown on the family dashboard.</p>
-            </div>
+        <button type="button" onClick={() => toggleSection("goal")} className="flex w-full items-center gap-3 text-left">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-sunshine text-slate-800 dark:bg-amber-900/40 dark:text-amber-100"><Target className="h-6 w-6" /></span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-black">Family team goal</h2>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Set the shared points target shown on the family dashboard.</p>
           </div>
-          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.goal ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition-transform ${sectionOpen.goal ? "rotate-180" : ""}`} />
         </button>
         {sectionOpen.goal ? (
           <>
@@ -448,15 +448,13 @@ export default function SettingsPage() {
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <button type="button" onClick={() => toggleSection("report")} className="flex w-full items-center justify-between gap-3 text-left">
-          <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-skywash text-blueberry dark:bg-slate-700 dark:text-sky-300"><MessageSquare className="h-6 w-6" /></span>
-            <div>
-              <h2 className="text-xl font-black">Report a bug or suggestion</h2>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-300">Send feedback to {reportEmail}.</p>
-            </div>
+        <button type="button" onClick={() => toggleSection("report")} className="flex w-full items-center gap-3 text-left">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-skywash text-blueberry dark:bg-slate-700 dark:text-sky-300"><MessageSquare className="h-6 w-6" /></span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-black">Report a bug or suggestion</h2>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Send quick feedback to {reportEmail}.</p>
           </div>
-          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.report ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition-transform ${sectionOpen.report ? "rotate-180" : ""}`} />
         </button>
         {sectionOpen.report ? (
           <form onSubmit={submitReport} className="mt-4 grid gap-3">
@@ -475,9 +473,13 @@ export default function SettingsPage() {
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <button type="button" onClick={() => toggleSection("parentLock")} className="flex w-full items-center justify-between gap-3 text-left">
-          <h2 className="text-xl font-black">Parent lock and display</h2>
-          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.parentLock ? "rotate-180" : ""}`} />
+        <button type="button" onClick={() => toggleSection("parentLock")} className="flex w-full items-center gap-3 text-left">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200"><KeyRound className="h-6 w-6" /></span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-black">Parent lock and display</h2>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Protect sensitive actions and control visual preferences.</p>
+          </div>
+          <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition-transform ${sectionOpen.parentLock ? "rotate-180" : ""}`} />
         </button>
         {sectionOpen.parentLock ? (
           <>
@@ -491,12 +493,13 @@ export default function SettingsPage() {
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
-        <button type="button" onClick={() => toggleSection("install")} className="flex w-full items-center justify-between gap-3 text-left">
-          <div>
+        <button type="button" onClick={() => toggleSection("install")} className="flex w-full items-center gap-3 text-left">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-200"><Download className="h-6 w-6" /></span>
+          <div className="min-w-0 flex-1">
             <h2 className="text-xl font-black">Install app icon</h2>
             <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Add KindPoints to your home screen for app-like access.</p>
           </div>
-          <ChevronDown className={`h-5 w-5 text-slate-500 transition ${sectionOpen.install ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition-transform ${sectionOpen.install ? "rotate-180" : ""}`} />
         </button>
         {sectionOpen.install ? (
           <>
