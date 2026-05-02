@@ -40,16 +40,17 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
     const mergedPresetTemplates = presetWithKeys.map<BehaviourTemplate>((template) => {
       const override = overrideByPresetKey.get(template.key);
       if (!override) return template;
+      if (override.disabled) return { ...template, title: "", points: 0 };
       return {
         title: override.title,
         type: override.category,
         points: override.points,
         emoji: template.emoji
       };
-    });
+    }).filter((template) => Boolean(template.title));
 
     const custom = data.customActions
-      .filter((action) => action.category === tab && !action.presetKey)
+      .filter((action) => action.category === tab && !action.presetKey && !action.disabled)
       .map<BehaviourTemplate>((action) => ({ title: action.title, type: action.category, points: action.points, emoji: tab === "negative" ? "🧡" : "✨" }));
 
     return [...mergedPresetTemplates, ...custom];

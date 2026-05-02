@@ -8,7 +8,7 @@ import { ActionType, CustomAction } from "@/lib/types";
 
 type DeleteTarget =
   | { kind: "custom"; id: string; title: string }
-  | { kind: "presetOverride"; presetKey: string; title: string };
+  | { kind: "preset"; presetKey: string; title: string };
 
 export default function ActionsPage() {
   const { data, addCustomAction, updateCustomAction, deleteCustomAction } = useKindPoints();
@@ -43,7 +43,9 @@ export default function ActionsPage() {
     return new Map(data.customActions.filter((action) => action.presetKey).map((action) => [action.presetKey as string, action]));
   }, [data.customActions]);
 
-  const standaloneCustomActions = useMemo(() => data.customActions.filter((action) => !action.presetKey), [data.customActions]);
+  const presetByKey = useMemo(() => new Map(presetActions.map((preset) => [preset.key, preset])), [presetActions]);
+
+  const standaloneCustomActions = useMemo(() => data.customActions.filter((action) => !action.presetKey && !action.disabled), [data.customActions]);
 
   function parsePoints(input: string) {
     const parsed = Number(input);
@@ -125,8 +127,22 @@ export default function ActionsPage() {
 
   async function resetPreset(presetKey: string) {
     const override = presetOverrides.get(presetKey);
+    const preset = presetByKey.get(presetKey);
+    if (!preset) return;
+    setDeleteTarget({ kind: "preset", presetKey, title: override?.title ?? preset.title });
+  }
+
+  async function restorePreset(presetKey: string) {
+    const override = presetOverrides.get(presetKey);
     if (!override) return;
-    setDeleteTarget({ kind: "presetOverride", presetKey, title: override.title });
+    await updateCustomAction(override.id, {
+      title: override.title,
+      category: override.category,
+      points: override.points,
+      note: override.note,
+      presetKey,
+      disabled: false
+    });
   }
 
   async function confirmDelete() {
@@ -135,9 +151,31 @@ export default function ActionsPage() {
       await deleteCustomAction(deleteTarget.id);
       if (editingId === deleteTarget.id) setEditingId(null);
     }
-    if (deleteTarget.kind === "presetOverride") {
+    if (deleteTarget.kind === "preset") {
       const override = presetOverrides.get(deleteTarget.presetKey);
-      if (override) await deleteCustomAction(override.id);
+      const preset = presetByKey.get(deleteTarget.presetKey);
+      if (!preset) {
+        setDeleteTarget(null);
+        return;
+      }
+      if (override) {
+        await updateCustomAction(override.id, {
+          title: override.title,
+          category: override.category,
+          points: override.points,
+          note: override.note,
+          presetKey: deleteTarget.presetKey,
+          disabled: true
+        });
+      } else {
+        await addCustomAction({
+          title: preset.title,
+          category: preset.category,
+          points: preset.points,
+          presetKey: deleteTarget.presetKey,
+          disabled: true
+        });
+      }
       if (editingPresetKey === deleteTarget.presetKey) setEditingPresetKey(null);
     }
     setDeleteTarget(null);
@@ -181,6 +219,7 @@ export default function ActionsPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           {presetActions.map((preset) => {
             const override = presetOverrides.get(preset.key);
+            const isDeleted = Boolean(override?.disabled);
             const shownTitle = override?.title ?? preset.title;
             const shownPoints = override?.points ?? preset.points;
             const shownNote = override?.note;
@@ -208,7 +247,7 @@ export default function ActionsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-black">{preset.emoji} {shownTitle}</h3>
-                    <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">{shownNote || "Preset action"}</p>
+                    <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">{isDeleted ? "Deleted from picker" : shownNote || "Preset action"}</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-extrabold uppercase ${badgeClass(preset.category)}`}>{preset.category}</span>
                 </div>
@@ -216,7 +255,8 @@ export default function ActionsPage() {
                   <span className="text-xl font-black text-blueberry dark:text-sky-300">{shownPoints > 0 ? "+" : ""}{shownPoints} pts</span>
                   <div className="flex items-center gap-2">
                     <button type="button" onClick={() => startPresetEdit(preset.key, preset.category)} className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 dark:bg-slate-700" aria-label={`Edit ${shownTitle}`}><Pencil className="h-5 w-5" /></button>
-                    {override ? <button type="button" onClick={() => resetPreset(preset.key)} className="grid h-11 w-11 place-items-center rounded-2xl bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" aria-label={`Reset ${shownTitle}`}><Trash2 className="h-5 w-5" /></button> : null}
+                    {isDeleted ? <button type="button" onClick={() => restorePreset(preset.key)} className="rounded-2xl bg-mint px-3 py-2 text-xs font-black text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">Restore</button> : null}
+                    {!isDeleted ? <button type="button" onClick={() => resetPreset(preset.key)} className="grid h-11 w-11 place-items-center rounded-2xl bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" aria-label={`Delete ${shownTitle}`}><Trash2 className="h-5 w-5" /></button> : null}
                   </div>
                 </div>
               </article>
@@ -276,9 +316,9 @@ export default function ActionsPage() {
           <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
             <h2 className="text-xl font-black">Delete action?</h2>
             <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">
-              {deleteTarget.kind === "presetOverride"
-                ? `This will reset "${deleteTarget.title}" back to its default preset values.`
-                : `This will delete "${deleteTarget.title}" from your reusable custom actions.`}
+              {deleteTarget.kind === "preset"
+                ? `This will hide "${deleteTarget.title}" from the action picker. Previously saved child actions stay unchanged.`
+                : `This will delete "${deleteTarget.title}" from your reusable custom actions. Previously saved child actions stay unchanged.`}
             </p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setDeleteTarget(null)} className="flex min-h-12 items-center justify-center rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-700 dark:bg-slate-700 dark:text-slate-100">Cancel</button>

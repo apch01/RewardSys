@@ -36,6 +36,7 @@ export type CustomAction = {
   points: number;
   note?: string;
   presetKey?: string;
+  disabled?: boolean;
   createdAt: string;
 };
 

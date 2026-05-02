@@ -95,7 +95,7 @@ export function addCustomActionToData(data: AppData, input: Omit<CustomAction, "
   return { data: { ...data, customActions: [{ id: createId("custom"), ...input, points, createdAt: new Date().toISOString() }, ...data.customActions] } };
 }
 
-export function updateCustomActionInData(data: AppData, id: string, updates: Pick<CustomAction, "title" | "category" | "points" | "note" | "presetKey">): FamilyMutationResult {
+export function updateCustomActionInData(data: AppData, id: string, updates: Pick<CustomAction, "title" | "category" | "points" | "note" | "presetKey" | "disabled">): FamilyMutationResult {
   const points = updates.category === "negative" ? -Math.abs(updates.points) : Math.abs(updates.points);
   return {
     data: {
