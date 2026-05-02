@@ -79,7 +79,7 @@ export default function ChildProfilePage() {
             <input value={name} onChange={(event) => setName(event.target.value)} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center text-xl font-black dark:border-slate-600 dark:bg-slate-900" />
             <div className="grid min-w-0 gap-3 sm:grid-cols-2">
               <div className="min-w-0">
-                <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} max={new Date().toISOString().slice(0, 10)} className="block h-12 w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold dark:border-slate-600 dark:bg-slate-900" />
+                <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} max={new Date().toISOString().slice(0, 10)} className="mobile-date-input block h-12 w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold dark:border-slate-600 dark:bg-slate-900" />
               </div>
               <div className="min-w-0">
                 <select value={gender} onChange={(event) => setGender(event.target.value as "boy" | "girl" | "other")} className="block h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center font-black dark:border-slate-600 dark:bg-slate-900">

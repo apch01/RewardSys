@@ -380,7 +380,7 @@ export default function ActionsPage() {
                   }}
                   onDrop={(event: DragEvent<HTMLElement>) => { event.preventDefault(); handleDrop(item.key); }}
                   onDragEnd={() => { setDraggingKey(null); setDropTargetKey(null); }}
-                  className={`relative select-none rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800 ${draggingKey === item.key ? "opacity-50" : ""} ${isDropTarget ? "ring-2 ring-blueberry/70 dark:ring-sky-400/70" : ""}`}
+                  className={`relative select-none rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800 ${draggingKey === item.key ? "opacity-50" : ""}`}
                 >
                   {isDropTarget ? <div className="absolute -top-1 left-4 right-4 h-1 rounded-full bg-blueberry dark:bg-sky-300" /> : null}
                   <div className="flex items-start justify-between gap-3">

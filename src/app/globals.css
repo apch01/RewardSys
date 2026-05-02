@@ -65,3 +65,27 @@ textarea {
 .animate-loaderBounce {
   animation: loaderBounce 1s ease-in-out infinite;
 }
+
+.mobile-date-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.mobile-date-input::-webkit-datetime-edit {
+  padding: 0;
+}
+
+.mobile-date-input::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+}
+
+.mobile-date-input::-webkit-calendar-picker-indicator {
+  margin: 0;
+  padding: 0;
+}
