@@ -51,18 +51,22 @@ export function AddChildModal({ open, onClose }: { open: boolean; onClose: () =>
         <label className="text-sm font-extrabold text-slate-600 dark:text-slate-200" htmlFor="child-name">Name</label>
         <input id="child-name" value={name} onChange={(event) => setName(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Child name" required />
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Birthday</span>
-            <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} max={new Date().toISOString().slice(0, 10)} className="mobile-date-input mt-2 h-12 w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" required />
-          </label>
-          <label className="block">
-            <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Gender</span>
-            <select value={gender} onChange={(event) => setGender(event.target.value as "boy" | "girl" | "other")} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" required>
-              <option value="boy">Boy</option>
-              <option value="girl">Girl</option>
-              <option value="other">Other</option>
-            </select>
-          </label>
+          <div className="min-w-0">
+            <label className="block">
+              <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Birthday</span>
+              <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} max={new Date().toISOString().slice(0, 10)} className="mobile-date-input mt-2 block h-12 w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" required />
+            </label>
+          </div>
+          <div className="min-w-0">
+            <label className="block">
+              <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Gender</span>
+              <select value={gender} onChange={(event) => setGender(event.target.value as "boy" | "girl" | "other")} className="block mt-2 h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" required>
+                <option value="boy">Boy</option>
+                <option value="girl">Girl</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+          </div>
         </div>
         <label className="mt-4 block text-sm font-extrabold text-slate-600 dark:text-slate-200" htmlFor="child-bio">Bio (optional)</label>
         <textarea id="child-bio" value={bio} onChange={(event) => setBio(event.target.value)} className="mt-2 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="A few words about this child" />
