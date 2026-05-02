@@ -35,6 +35,11 @@ export default function SettingsPage() {
   const [goalTitleDraft, setGoalTitleDraft] = useState(data.settings.familyGoalTitle);
   const [goalTargetDraft, setGoalTargetDraft] = useState(String(data.settings.familyGoalTarget));
   const [goalMessage, setGoalMessage] = useState("");
+  const [joiningFamily, setJoiningFamily] = useState(false);
+  const [revokingSecret, setRevokingSecret] = useState(false);
+  const [savingPin, setSavingPin] = useState(false);
+  const [savingFairness, setSavingFairness] = useState(false);
+  const [savingGoal, setSavingGoal] = useState(false);
 
   useEffect(() => {
     setPinDraft(data.settings.parentPin);
@@ -96,41 +101,71 @@ export default function SettingsPage() {
 
   async function submitJoin(event: FormEvent) {
     event.preventDefault();
+    if (joiningFamily) return;
     setSyncMessage("");
-    await joinFamily(syncId, secret);
-    setSyncId("");
-    setSecret("");
-    setSyncMessage("Family connected");
+    setJoiningFamily(true);
+    try {
+      await joinFamily(syncId, secret);
+      setSyncId("");
+      setSecret("");
+      setSyncMessage("Family connected");
+    } finally {
+      setJoiningFamily(false);
+    }
   }
 
   async function revokeSecret() {
-    await rotateSecret();
-    setSyncMessage("Secret key revoked and replaced");
+    if (revokingSecret) return;
+    setRevokingSecret(true);
+    try {
+      await rotateSecret();
+      setSyncMessage("Secret key revoked and replaced");
+    } finally {
+      setRevokingSecret(false);
+    }
   }
 
   async function savePin() {
-    await updateSettings({ parentPin: pinDraft.trim() });
-    setPinMessage(pinDraft.trim() ? "PIN saved" : "PIN removed");
-    window.setTimeout(() => setPinMessage(""), 1600);
+    if (savingPin) return;
+    setSavingPin(true);
+    try {
+      await updateSettings({ parentPin: pinDraft.trim() });
+      setPinMessage(pinDraft.trim() ? "PIN saved" : "PIN removed");
+      window.setTimeout(() => setPinMessage(""), 1600);
+    } finally {
+      setSavingPin(false);
+    }
   }
 
   async function saveFairness() {
-    await updateSettings({
-      allowNegativeBalance: allowNegativeDraft,
-      dailyNegativeLimit: parsePositiveNumber(dailyNegativeLimitDraft, data.settings.dailyNegativeLimit),
-      perIncidentNegativeLimit: parsePositiveNumber(perIncidentNegativeLimitDraft, data.settings.perIncidentNegativeLimit)
-    });
-    setFairnessMessage("Fairness safeguards saved");
-    window.setTimeout(() => setFairnessMessage(""), 1800);
+    if (savingFairness) return;
+    setSavingFairness(true);
+    try {
+      await updateSettings({
+        allowNegativeBalance: allowNegativeDraft,
+        dailyNegativeLimit: parsePositiveNumber(dailyNegativeLimitDraft, data.settings.dailyNegativeLimit),
+        perIncidentNegativeLimit: parsePositiveNumber(perIncidentNegativeLimitDraft, data.settings.perIncidentNegativeLimit)
+      });
+      setFairnessMessage("Fairness safeguards saved");
+      window.setTimeout(() => setFairnessMessage(""), 1800);
+    } finally {
+      setSavingFairness(false);
+    }
   }
 
   async function saveGoal() {
-    await updateSettings({
-      familyGoalTitle: goalTitleDraft.trim() || data.settings.familyGoalTitle,
-      familyGoalTarget: parsePositiveNumber(goalTargetDraft, data.settings.familyGoalTarget)
-    });
-    setGoalMessage("Family goal saved");
-    window.setTimeout(() => setGoalMessage(""), 1800);
+    if (savingGoal) return;
+    setSavingGoal(true);
+    try {
+      await updateSettings({
+        familyGoalTitle: goalTitleDraft.trim() || data.settings.familyGoalTitle,
+        familyGoalTarget: parsePositiveNumber(goalTargetDraft, data.settings.familyGoalTarget)
+      });
+      setGoalMessage("Family goal saved");
+      window.setTimeout(() => setGoalMessage(""), 1800);
+    } finally {
+      setSavingGoal(false);
+    }
   }
 
   async function installApp() {
@@ -192,7 +227,7 @@ export default function SettingsPage() {
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {family.isCreator ? <button onClick={copySync} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Copy className="h-5 w-5" /> Copy sync details</button> : null}
-              {family.isCreator ? <button onClick={revokeSecret} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 dark:bg-orange-950 dark:text-orange-100"><KeyRound className="h-5 w-5" /> Revoke secret</button> : null}
+              {family.isCreator ? <button disabled={revokingSecret} onClick={revokeSecret} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 disabled:opacity-60 dark:bg-orange-950 dark:text-orange-100"><KeyRound className="h-5 w-5" /> {revokingSecret ? "Revoking" : "Revoke secret"}</button> : null}
             </div>
           </div>
         ) : null}
@@ -201,7 +236,7 @@ export default function SettingsPage() {
           <h3 className="font-black">Join an existing family</h3>
           <input value={syncId} onChange={(event) => setSyncId(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800" placeholder="Sync ID" />
           <input type="password" value={secret} onChange={(event) => setSecret(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800" placeholder="Secret key" />
-          <button className="min-h-12 rounded-2xl bg-slate-900 px-4 py-3 font-black text-white dark:bg-white dark:text-slate-900">Connect family</button>
+          <button disabled={joiningFamily} className="min-h-12 rounded-2xl bg-slate-900 px-4 py-3 font-black text-white disabled:opacity-60 dark:bg-white dark:text-slate-900">{joiningFamily ? "Connecting" : "Connect family"}</button>
         </form>
         {syncMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{syncMessage}</p> : null}
       </section>
@@ -211,7 +246,7 @@ export default function SettingsPage() {
         <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span>Allow points below zero</span><input type="checkbox" checked={allowNegativeDraft} onChange={(event) => setAllowNegativeDraft(event.target.checked)} className="h-6 w-6" /></label>
         <NumberField label="Daily negative point limit" value={dailyNegativeLimitDraft} onChange={(event) => setDailyNegativeLimitDraft(event.target.value)} />
         <NumberField label="Per incident negative limit" value={perIncidentNegativeLimitDraft} onChange={(event) => setPerIncidentNegativeLimitDraft(event.target.value)} />
-        <button type="button" onClick={saveFairness} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white">Save fairness safeguards</button>
+        <button type="button" disabled={savingFairness} onClick={saveFairness} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingFairness ? "Saving" : "Save fairness safeguards"}</button>
         {fairnessMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{fairnessMessage}</p> : null}
       </section>
 
@@ -228,7 +263,7 @@ export default function SettingsPage() {
           <input value={goalTitleDraft} onChange={(event) => setGoalTitleDraft(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
         </label>
         <NumberField label="Target points" value={goalTargetDraft} onChange={(event) => setGoalTargetDraft(event.target.value)} />
-        <button type="button" onClick={saveGoal} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white">Save family goal</button>
+        <button type="button" disabled={savingGoal} onClick={saveGoal} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingGoal ? "Saving" : "Save family goal"}</button>
         {goalMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{goalMessage}</p> : null}
       </section>
 
@@ -258,7 +293,7 @@ export default function SettingsPage() {
         <h2 className="text-xl font-black">Parent lock and display</h2>
         <label className="mt-4 block text-sm font-extrabold text-slate-500 dark:text-slate-300" htmlFor="pin">Simple parent PIN</label>
         <input id="pin" type="password" value={pinDraft} onChange={(event) => setPinDraft(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional PIN" />
-        <button type="button" onClick={savePin} className="mt-3 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white">Confirm PIN and save</button>
+        <button type="button" disabled={savingPin} onClick={savePin} className="mt-3 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingPin ? "Saving" : "Confirm PIN and save"}</button>
         {pinMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{pinMessage}</p> : null}
         <label className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 font-bold dark:bg-slate-900"><span className="flex items-center gap-2"><Moon className="h-5 w-5" /> Dark mode</span><input type="checkbox" checked={data.settings.darkMode} onChange={(event) => updateSettings({ darkMode: event.target.checked })} className="h-6 w-6" /></label>
       </section>

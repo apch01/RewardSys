@@ -72,8 +72,8 @@ export const defaultSettings: Settings = {
 
 export const sampleData: AppData = {
   children: [
-    { id: "child-maya", name: "Maya", avatar: "🌟", age: 8, gender: "girl", bio: "Loves art and helping younger kids.", points: 85, createdAt: sampleCreatedAt },
-    { id: "child-leo", name: "Leo", avatar: "🚀", age: 10, gender: "boy", bio: "Enjoys soccer and science experiments.", points: 120, createdAt: sampleCreatedAt }
+    { id: "child-maya", name: "Maya", avatar: "🌟", birthday: "2018-05-10", gender: "girl", bio: "Loves art and helping younger kids.", points: 85, createdAt: sampleCreatedAt },
+    { id: "child-leo", name: "Leo", avatar: "🚀", birthday: "2016-10-03", gender: "boy", bio: "Enjoys soccer and science experiments.", points: 120, createdAt: sampleCreatedAt }
   ],
   actions: [
     { id: "action-1", childId: "child-maya", title: "Helping sibling", type: "positive", points: 15, note: "Helped find a missing book.", createdAt: sampleCreatedAt },

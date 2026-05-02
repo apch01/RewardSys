@@ -2,6 +2,15 @@ import { defaultRewards, defaultSettings } from "./defaults";
 import { Action, AppData, Child, CustomAction, Reward } from "./types";
 import { createId, todaysNegativePoints } from "./utils";
 
+function birthdayFromLegacyAge(age: number | undefined): string {
+  if (!Number.isFinite(age) || (age ?? 0) <= 0) return "";
+  const now = new Date();
+  const year = now.getUTCFullYear() - Math.round(age as number);
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(now.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 type AddActionInput = {
   childId: string;
   title: string;
@@ -19,7 +28,7 @@ export function normalizeData(data: Partial<AppData> | null | undefined): AppDat
   return {
     children: (data?.children ?? []).map((child) => ({
       ...child,
-      age: child.age ?? 0,
+      birthday: (child as Child & { age?: number }).birthday ?? birthdayFromLegacyAge((child as Child & { age?: number }).age),
       gender: child.gender ?? "other",
       bio: child.bio ?? ""
     })),
@@ -37,12 +46,12 @@ export function normalizeData(data: Partial<AppData> | null | undefined): AppDat
   };
 }
 
-export function addChildToData(data: AppData, child: Pick<Child, "name" | "avatar" | "age" | "gender" | "bio">): FamilyMutationResult {
+export function addChildToData(data: AppData, child: Pick<Child, "name" | "avatar" | "birthday" | "gender" | "bio">): FamilyMutationResult {
   const newChild: Child = { id: createId("child"), points: 0, createdAt: new Date().toISOString(), ...child };
   return { data: { ...data, children: [...data.children, newChild] } };
 }
 
-export function updateChildInData(data: AppData, id: string, updates: Pick<Child, "name" | "avatar" | "age" | "gender" | "bio">): FamilyMutationResult {
+export function updateChildInData(data: AppData, id: string, updates: Pick<Child, "name" | "avatar" | "birthday" | "gender" | "bio">): FamilyMutationResult {
   return { data: { ...data, children: data.children.map((child) => child.id === id ? { ...child, ...updates } : child) } };
 }
 
@@ -97,7 +106,11 @@ export function undoActionInData(data: AppData, id: string): FamilyMutationResul
 
 export function addCustomActionToData(data: AppData, input: Omit<CustomAction, "id" | "createdAt">): FamilyMutationResult {
   const points = input.category === "negative" ? -Math.abs(input.points) : Math.abs(input.points);
-  const nextSortIndex = (data.customActions.filter((action) => action.category === input.category).map((action) => action.sortIndex ?? 0).reduce((max, value) => Math.max(max, value), 0) || 0) + 1;
+  const minSortIndex = data.customActions
+    .filter((action) => action.category === input.category)
+    .map((action) => action.sortIndex ?? 0)
+    .reduce((min, value) => Math.min(min, value), 0);
+  const nextSortIndex = minSortIndex - 1;
   return {
     data: {
       ...data,

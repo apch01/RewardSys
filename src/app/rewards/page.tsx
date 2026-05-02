@@ -17,6 +17,10 @@ export default function RewardsPage() {
   const [editCostInput, setEditCostInput] = useState("50");
   const [editDescription, setEditDescription] = useState("");
   const [rewardToDelete, setRewardToDelete] = useState<Reward | null>(null);
+  const [savingAdd, setSavingAdd] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingReward, setDeletingReward] = useState(false);
+  const [redeemingRewardId, setRedeemingRewardId] = useState<string | null>(null);
 
   function parsePointValue(input: string, fallback: number) {
     const parsed = Number(input);
@@ -26,12 +30,18 @@ export default function RewardsPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (savingAdd) return;
     if (!title.trim()) return;
     const cost = parsePointValue(costInput, 50);
-    await addReward({ title: title.trim(), cost, description: description.trim() || "A family-approved reward." });
-    setTitle("");
-    setCostInput("50");
-    setDescription("");
+    setSavingAdd(true);
+    try {
+      await addReward({ title: title.trim(), cost, description: description.trim() || "A family-approved reward." });
+      setTitle("");
+      setCostInput("50");
+      setDescription("");
+    } finally {
+      setSavingAdd(false);
+    }
   }
 
   function startEdit(reward: Reward) {
@@ -43,10 +53,16 @@ export default function RewardsPage() {
 
   async function saveEdit(event: FormEvent) {
     event.preventDefault();
+    if (savingEdit) return;
     if (!editingRewardId || !editTitle.trim()) return;
     const editCost = parsePointValue(editCostInput, 50);
-    await updateReward(editingRewardId, { title: editTitle.trim(), cost: editCost, description: editDescription.trim() || "A family-approved reward." });
-    setEditingRewardId(null);
+    setSavingEdit(true);
+    try {
+      await updateReward(editingRewardId, { title: editTitle.trim(), cost: editCost, description: editDescription.trim() || "A family-approved reward." });
+      setEditingRewardId(null);
+    } finally {
+      setSavingEdit(false);
+    }
   }
 
   async function removeReward(reward: Reward) {
@@ -54,10 +70,15 @@ export default function RewardsPage() {
   }
 
   async function confirmRemoveReward() {
-    if (!rewardToDelete) return;
-    await deleteReward(rewardToDelete.id);
-    if (editingRewardId === rewardToDelete.id) setEditingRewardId(null);
-    setRewardToDelete(null);
+    if (!rewardToDelete || deletingReward) return;
+    setDeletingReward(true);
+    try {
+      await deleteReward(rewardToDelete.id);
+      if (editingRewardId === rewardToDelete.id) setEditingRewardId(null);
+      setRewardToDelete(null);
+    } finally {
+      setDeletingReward(false);
+    }
   }
 
   function cancelRemoveReward() {
@@ -65,10 +86,21 @@ export default function RewardsPage() {
   }
 
   async function removeEditingReward() {
+    if (savingEdit) return;
     if (!editingRewardId) return;
     const reward = data.rewards.find((item) => item.id === editingRewardId);
     if (!reward) return;
     setRewardToDelete(reward);
+  }
+
+  async function handleRedeem(reward: Reward) {
+    if (!selectedChild || redeemingRewardId) return;
+    setRedeemingRewardId(reward.id);
+    try {
+      await redeemReward(reward.id, selectedChild.id);
+    } finally {
+      setRedeemingRewardId(null);
+    }
   }
 
   const selectedChild = data.children.find((child) => child.id === childId) ?? data.children[0];
@@ -98,12 +130,12 @@ export default function RewardsPage() {
             </div>
             <textarea value={editDescription} onChange={(event) => setEditDescription(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Description" />
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <button className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Check className="h-5 w-5" /> Save</button>
-              <button type="button" onClick={() => setEditingRewardId(null)} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-600 dark:bg-slate-700 dark:text-slate-200"><X className="h-5 w-5" /> Cancel</button>
-              <button type="button" onClick={removeEditingReward} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 dark:bg-orange-950 dark:text-orange-100">Delete</button>
+              <button disabled={savingEdit} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60"><Check className="h-5 w-5" /> {savingEdit ? "Saving" : "Save"}</button>
+              <button type="button" disabled={savingEdit} onClick={() => setEditingRewardId(null)} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-600 disabled:opacity-60 dark:bg-slate-700 dark:text-slate-200"><X className="h-5 w-5" /> Cancel</button>
+              <button type="button" disabled={savingEdit} onClick={removeEditingReward} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 disabled:opacity-60 dark:bg-orange-950 dark:text-orange-100">Delete</button>
             </div>
           </form>
-        ) : <RewardCard key={reward.id} reward={reward} canRedeem={Boolean(selectedChild && selectedChild.points >= reward.cost)} onRedeem={selectedChild ? () => redeemReward(reward.id, selectedChild.id) : undefined} onEdit={() => startEdit(reward)} onDelete={() => removeReward(reward)} />)}</div>
+        ) : <RewardCard key={reward.id} reward={reward} canRedeem={Boolean(selectedChild && selectedChild.points >= reward.cost)} busy={redeemingRewardId === reward.id || deletingReward || savingEdit || savingAdd} onRedeem={selectedChild ? () => handleRedeem(reward) : undefined} onEdit={() => startEdit(reward)} onDelete={() => removeReward(reward)} />)}</div>
       </section>
 
       <form onSubmit={submit} className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
@@ -113,7 +145,7 @@ export default function RewardsPage() {
           <input type="number" value={costInput} min={1} onChange={(event) => setCostInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
         </div>
         <textarea value={description} onChange={(event) => setDescription(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Description" />
-        <button className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Plus className="h-5 w-5" /> Add reward</button>
+        <button disabled={savingAdd} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60"><Plus className="h-5 w-5" /> {savingAdd ? "Adding" : "Add reward"}</button>
       </form>
 
       {rewardToDelete ? (
@@ -122,8 +154,8 @@ export default function RewardsPage() {
             <h2 className="text-xl font-black">Delete reward?</h2>
             <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">This will remove &quot;{rewardToDelete.title}&quot; from the reward shop.</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <button type="button" onClick={cancelRemoveReward} className="flex min-h-12 items-center justify-center rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-700 dark:bg-slate-700 dark:text-slate-100">Cancel</button>
-              <button type="button" onClick={confirmRemoveReward} className="flex min-h-12 items-center justify-center rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 dark:bg-orange-950 dark:text-orange-100">Yes, delete</button>
+              <button type="button" disabled={deletingReward} onClick={cancelRemoveReward} className="flex min-h-12 items-center justify-center rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-700 disabled:opacity-60 dark:bg-slate-700 dark:text-slate-100">Cancel</button>
+              <button type="button" disabled={deletingReward} onClick={confirmRemoveReward} className="flex min-h-12 items-center justify-center rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 disabled:opacity-60 dark:bg-orange-950 dark:text-orange-100">{deletingReward ? "Deleting" : "Yes, delete"}</button>
             </div>
           </div>
         </div>

@@ -13,6 +13,7 @@ export default function ForgotPasswordPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (loading) return;
     setError("");
     setMessage("");
     setDevResetUrl("");

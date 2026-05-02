@@ -19,6 +19,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoadingId, setOauthLoadingId] = useState<string | null>(null);
   const [oauthProviders, setOauthProviders] = useState<ProviderInfo[]>([]);
 
   useEffect(() => {
@@ -29,6 +30,7 @@ export default function SignInPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (loading || oauthLoadingId) return;
     setError("");
     setLoading(true);
     const result = await signIn("credentials", { email, password, redirect: false, callbackUrl: "/" });
@@ -41,6 +43,12 @@ export default function SignInPage() {
 
     router.push(result?.url ?? "/");
     router.refresh();
+  }
+
+  async function submitOauth(providerId: string) {
+    if (loading || oauthLoadingId) return;
+    setOauthLoadingId(providerId);
+    await signIn(providerId, { callbackUrl: "/" });
   }
 
   return (
@@ -65,7 +73,7 @@ export default function SignInPage() {
             <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Password</span>
             <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" autoComplete="current-password" required />
           </label>
-          <button disabled={loading} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-70"><LogIn className="h-5 w-5" /> {loading ? "Signing in" : "Sign in"}</button>
+          <button disabled={loading || Boolean(oauthLoadingId)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-70"><LogIn className="h-5 w-5" /> {loading ? "Signing in" : "Sign in"}</button>
         </form>
 
         <div className="mt-4 flex items-center justify-between text-sm font-bold">
@@ -75,9 +83,9 @@ export default function SignInPage() {
 
         {oauthProviders.length ? <div className="mt-6 space-y-3 border-t border-slate-100 pt-5 dark:border-slate-700">
           {oauthProviders.map((provider) => (
-            <button key={provider.id} onClick={() => signIn(provider.id, { callbackUrl: "/" })} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 font-black text-white transition hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
+            <button key={provider.id} type="button" disabled={loading || Boolean(oauthLoadingId)} onClick={() => submitOauth(provider.id)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 font-black text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
               {provider.id === "google" ? <Sparkles className="h-5 w-5" /> : <KeyRound className="h-5 w-5" />}
-              Continue with {provider.name}
+              {oauthLoadingId === provider.id ? `Connecting ${provider.name}` : `Continue with ${provider.name}`}
             </button>
           ))}
         </div> : null}

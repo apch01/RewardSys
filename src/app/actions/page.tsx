@@ -1,7 +1,7 @@
 "use client";
 
 import { DragEvent, FormEvent, useMemo, useState } from "react";
-import { Check, ClipboardList, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { Check, ClipboardList, GripVertical, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { negativeBehaviours, positiveBehaviours, repairActions } from "@/lib/defaults";
 import { useKindPoints } from "@/lib/store";
 import { ActionType, CustomAction } from "@/lib/types";
@@ -45,6 +45,7 @@ export default function ActionsPage() {
   const [editNote, setEditNote] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const presetActions = useMemo(() => {
     const asPreset = (items: typeof positiveBehaviours, type: ActionType) => items.map((item, index) => ({
@@ -159,6 +160,7 @@ export default function ActionsPage() {
   }
 
   async function handleDrop(targetKey: string) {
+    if (busy) return;
     if (!draggingKey || draggingKey === targetKey) return;
     const fromIndex = combinedActions.findIndex((item) => item.key === draggingKey);
     const toIndex = combinedActions.findIndex((item) => item.key === targetKey);
@@ -167,23 +169,34 @@ export default function ActionsPage() {
     const reordered = [...combinedActions];
     const [moved] = reordered.splice(fromIndex, 1);
     reordered.splice(toIndex, 0, moved);
-    await persistSortOrder(reordered);
-    setDraggingKey(null);
+    setBusy(true);
+    try {
+      await persistSortOrder(reordered);
+      setDraggingKey(null);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (busy) return;
     if (!title.trim()) return;
     const basePoints = parsePoints(pointsInput);
     const points = tab === "negative" ? -basePoints : basePoints;
-    const nextSortIndex = (combinedActions[combinedActions.length - 1]?.sortIndex ?? 0) + 1;
-    await addCustomAction({ title: title.trim(), category: tab, points, note: note.trim() || undefined, sortIndex: nextSortIndex });
-    setTitle("");
-    setPointsInput("10");
-    setNote("");
+    setBusy(true);
+    try {
+      await addCustomAction({ title: title.trim(), category: tab, points, note: note.trim() || undefined });
+      setTitle("");
+      setPointsInput("10");
+      setNote("");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function startEdit(item: CombinedAction) {
+    if (busy) return;
     setEditingKey(item.key);
     setEditTitle(item.title);
     setEditPointsInput(String(Math.abs(item.points)));
@@ -192,36 +205,43 @@ export default function ActionsPage() {
 
   async function saveEdit(event: FormEvent) {
     event.preventDefault();
+    if (busy) return;
     if (!editingKey || !editTitle.trim()) return;
     const item = combinedActions.find((entry) => entry.key === editingKey);
     if (!item) return;
     const basePoints = parsePoints(editPointsInput);
     const points = item.category === "negative" ? -basePoints : basePoints;
 
-    if (item.kind === "custom" && item.customId) {
-      await updateCustomAction(item.customId, {
-        title: editTitle.trim(),
-        category: item.category,
-        points,
-        note: editNote.trim() || undefined,
-        sortIndex: item.sortIndex
-      });
-    }
+    setBusy(true);
+    try {
+      if (item.kind === "custom" && item.customId) {
+        await updateCustomAction(item.customId, {
+          title: editTitle.trim(),
+          category: item.category,
+          points,
+          note: editNote.trim() || undefined,
+          sortIndex: item.sortIndex
+        });
+      }
 
-    if (item.kind === "preset" && item.presetKey) {
-      await upsertPresetOverride(item.presetKey, {
-        title: editTitle.trim(),
-        points,
-        note: editNote.trim() || undefined,
-        disabled: false,
-        sortIndex: item.sortIndex
-      });
-    }
+      if (item.kind === "preset" && item.presetKey) {
+        await upsertPresetOverride(item.presetKey, {
+          title: editTitle.trim(),
+          points,
+          note: editNote.trim() || undefined,
+          disabled: false,
+          sortIndex: item.sortIndex
+        });
+      }
 
-    setEditingKey(null);
+      setEditingKey(null);
+    } finally {
+      setBusy(false);
+    }
   }
 
   function queueDelete(item: CombinedAction) {
+    if (busy) return;
     if (item.kind === "custom" && item.customId) {
       setDeleteTarget({ kind: "custom", id: item.customId, title: item.title });
     }
@@ -231,20 +251,32 @@ export default function ActionsPage() {
   }
 
   async function restorePreset(presetKey: string) {
-    await upsertPresetOverride(presetKey, { disabled: false });
+    if (busy) return;
+    setBusy(true);
+    try {
+      await upsertPresetOverride(presetKey, { disabled: false });
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function confirmDelete() {
+    if (busy) return;
     if (!deleteTarget) return;
-    if (deleteTarget.kind === "custom") {
-      await deleteCustomAction(deleteTarget.id);
-    }
-    if (deleteTarget.kind === "preset") {
-      await upsertPresetOverride(deleteTarget.presetKey, { disabled: true });
-    }
-    setDeleteTarget(null);
-    if (editingKey && deleteTarget.kind === "custom" && editingKey === `custom:${deleteTarget.id}`) {
-      setEditingKey(null);
+    setBusy(true);
+    try {
+      if (deleteTarget.kind === "custom") {
+        await deleteCustomAction(deleteTarget.id);
+      }
+      if (deleteTarget.kind === "preset") {
+        await upsertPresetOverride(deleteTarget.presetKey, { disabled: true });
+      }
+      setDeleteTarget(null);
+      if (editingKey && deleteTarget.kind === "custom" && editingKey === `custom:${deleteTarget.id}`) {
+        setEditingKey(null);
+      }
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -255,14 +287,14 @@ export default function ActionsPage() {
           <span className="grid h-14 w-14 place-items-center rounded-3xl bg-skywash text-blueberry dark:bg-slate-700 dark:text-sky-300"><ClipboardList className="h-7 w-7" /></span>
           <div>
             <h1 className="text-3xl font-black">Actions</h1>
-            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Manage actions by category. Hold and drag cards to reorder the record-action picker.</p>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Manage actions by category. Drag the grip handle on each card to reorder the record-action picker.</p>
           </div>
         </div>
       </section>
 
       <section className="rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
         <div className="grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-700">
-          {(["positive", "negative", "repair"] as ActionType[]).map((item) => <button key={item} type="button" onClick={() => { setTab(item); setEditingKey(null); }} className={`min-h-11 rounded-xl text-sm font-black capitalize ${tab === item ? "bg-white text-blueberry shadow-sm dark:bg-slate-900 dark:text-sky-300" : "text-slate-500 dark:text-slate-300"}`}>{item}</button>)}
+          {(["positive", "negative", "repair"] as ActionType[]).map((item) => <button key={item} disabled={busy} type="button" onClick={() => { setTab(item); setEditingKey(null); }} className={`min-h-11 rounded-xl text-sm font-black capitalize disabled:opacity-60 ${tab === item ? "bg-white text-blueberry shadow-sm dark:bg-slate-900 dark:text-sky-300" : "text-slate-500 dark:text-slate-300"}`}>{item}</button>)}
         </div>
 
         <form onSubmit={submit} className="mt-4">
@@ -271,7 +303,7 @@ export default function ActionsPage() {
             <input type="number" value={pointsInput} min={1} onChange={(event) => setPointsInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" />
           </div>
           <textarea value={note} onChange={(event) => setNote(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional note" />
-          <button className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Plus className="h-5 w-5" /> Add action</button>
+          <button disabled={busy} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60"><Plus className="h-5 w-5" /> {busy ? "Saving" : "Add action"}</button>
         </form>
       </section>
 
@@ -293,8 +325,8 @@ export default function ActionsPage() {
                     </div>
                     <textarea value={editNote} onChange={(event) => setEditNote(event.target.value)} className="mt-3 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional note" />
                     <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Check className="h-5 w-5" /> Save</button>
-                      <button type="button" onClick={() => setEditingKey(null)} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-600 dark:bg-slate-700 dark:text-slate-200"><X className="h-5 w-5" /> Cancel</button>
+                      <button disabled={busy} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60"><Check className="h-5 w-5" /> {busy ? "Saving" : "Save"}</button>
+                      <button type="button" disabled={busy} onClick={() => setEditingKey(null)} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-600 disabled:opacity-60 dark:bg-slate-700 dark:text-slate-200"><X className="h-5 w-5" /> Cancel</button>
                     </div>
                   </form>
                 );
@@ -303,25 +335,32 @@ export default function ActionsPage() {
               return (
                 <article
                   key={item.key}
-                  draggable
+                  draggable={!busy}
                   onDragStart={(event: DragEvent<HTMLElement>) => { setDraggingKey(item.key); event.dataTransfer.effectAllowed = "move"; }}
                   onDragOver={(event: DragEvent<HTMLElement>) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
                   onDrop={(event: DragEvent<HTMLElement>) => { event.preventDefault(); handleDrop(item.key); }}
+                  onDragEnd={() => setDraggingKey(null)}
                   className={`rounded-3xl bg-white p-4 shadow-soft dark:bg-slate-800 ${draggingKey === item.key ? "opacity-50" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-black">{item.emoji ? `${item.emoji} ` : ""}{item.title}</h3>
-                      <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">{isPresetDeleted ? "Deleted from picker" : item.note || "Action template"}</p>
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 grid h-7 w-7 place-items-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300" title="Drag to reorder" aria-label="Drag to reorder">
+                        <GripVertical className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <h3 className="text-lg font-black">{item.emoji ? `${item.emoji} ` : ""}{item.title}</h3>
+                        {isPresetDeleted ? <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">Deleted from picker</p> : null}
+                        {!isPresetDeleted && item.note ? <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">{item.note}</p> : null}
+                      </div>
                     </div>
                     <span className={`rounded-full px-3 py-1 text-xs font-extrabold uppercase ${badgeClass(item.category)}`}>{item.category}</span>
                   </div>
                   <div className="mt-4 flex items-center justify-between">
                     <span className="text-xl font-black text-blueberry dark:text-sky-300">{item.points > 0 ? "+" : ""}{item.points} pts</span>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => startEdit(item)} className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 dark:bg-slate-700" aria-label={`Edit ${item.title}`}><Pencil className="h-5 w-5" /></button>
-                      {isPresetDeleted && item.presetKey ? <button type="button" onClick={() => restorePreset(item.presetKey as string)} className="grid h-11 w-11 place-items-center rounded-2xl bg-mint text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100" aria-label={`Restore ${item.title}`}><RotateCcw className="h-4 w-4" /></button> : null}
-                      {!isPresetDeleted ? <button type="button" onClick={() => queueDelete(item)} className="grid h-11 w-11 place-items-center rounded-2xl bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" aria-label={`Delete ${item.title}`}><Trash2 className="h-5 w-5" /></button> : null}
+                      <button type="button" disabled={busy} onClick={() => startEdit(item)} className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 disabled:opacity-60 dark:bg-slate-700" aria-label={`Edit ${item.title}`}><Pencil className="h-5 w-5" /></button>
+                      {isPresetDeleted && item.presetKey ? <button type="button" disabled={busy} onClick={() => restorePreset(item.presetKey as string)} className="grid h-11 w-11 place-items-center rounded-2xl bg-mint text-emerald-900 disabled:opacity-60 dark:bg-emerald-950 dark:text-emerald-100" aria-label={`Restore ${item.title}`}><RotateCcw className="h-4 w-4" /></button> : null}
+                      {!isPresetDeleted ? <button type="button" disabled={busy} onClick={() => queueDelete(item)} className="grid h-11 w-11 place-items-center rounded-2xl bg-peach text-amber-950 disabled:opacity-60 dark:bg-orange-950 dark:text-orange-100" aria-label={`Delete ${item.title}`}><Trash2 className="h-5 w-5" /></button> : null}
                     </div>
                   </div>
                 </article>
@@ -343,8 +382,8 @@ export default function ActionsPage() {
                 : `This will delete "${deleteTarget.title}" from reusable actions. Previously saved child actions stay unchanged.`}
             </p>
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => setDeleteTarget(null)} className="flex min-h-12 items-center justify-center rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-700 dark:bg-slate-700 dark:text-slate-100">Cancel</button>
-              <button type="button" onClick={confirmDelete} className="flex min-h-12 items-center justify-center rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 dark:bg-orange-950 dark:text-orange-100">Yes, delete</button>
+              <button type="button" disabled={busy} onClick={() => setDeleteTarget(null)} className="flex min-h-12 items-center justify-center rounded-2xl bg-slate-100 px-4 py-3 font-black text-slate-700 disabled:opacity-60 dark:bg-slate-700 dark:text-slate-100">Cancel</button>
+              <button type="button" disabled={busy} onClick={confirmDelete} className="flex min-h-12 items-center justify-center rounded-2xl bg-peach px-4 py-3 font-black text-amber-950 disabled:opacity-60 dark:bg-orange-950 dark:text-orange-100">{busy ? "Deleting" : "Yes, delete"}</button>
             </div>
           </div>
         </div>

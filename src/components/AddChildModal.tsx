@@ -10,23 +10,29 @@ export function AddChildModal({ open, onClose }: { open: boolean; onClose: () =>
   const { addChild } = useKindPoints();
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState(avatars[0]);
-  const [ageInput, setAgeInput] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [gender, setGender] = useState<"boy" | "girl" | "other">("other");
   const [bio, setBio] = useState("");
+  const [saving, setSaving] = useState(false);
 
   if (!open) return null;
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
-    const age = Number(ageInput);
-    if (!name.trim() || !Number.isFinite(age) || age <= 0 || !gender) return;
-    addChild({ name: name.trim(), avatar, age: Math.round(age), gender, bio: bio.trim() || undefined });
-    setName("");
-    setAvatar(avatars[0]);
-    setAgeInput("");
-    setGender("other");
-    setBio("");
-    onClose();
+    if (saving) return;
+    if (!name.trim() || !birthday || !gender) return;
+    setSaving(true);
+    try {
+      await addChild({ name: name.trim(), avatar, birthday, gender, bio: bio.trim() || undefined });
+      setName("");
+      setAvatar(avatars[0]);
+      setBirthday("");
+      setGender("other");
+      setBio("");
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -34,14 +40,14 @@ export function AddChildModal({ open, onClose }: { open: boolean; onClose: () =>
       <form onSubmit={submit} className="w-full max-w-md animate-pop rounded-3xl bg-white p-5 shadow-soft dark:bg-slate-800">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-black">Add child</h2>
-          <button type="button" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-full bg-slate-100 dark:bg-slate-700" aria-label="Close add child modal"><X className="h-5 w-5" /></button>
+          <button type="button" disabled={saving} onClick={onClose} className="grid h-11 w-11 place-items-center rounded-full bg-slate-100 disabled:opacity-60 dark:bg-slate-700" aria-label="Close add child modal"><X className="h-5 w-5" /></button>
         </div>
         <label className="text-sm font-extrabold text-slate-600 dark:text-slate-200" htmlFor="child-name">Name</label>
         <input id="child-name" value={name} onChange={(event) => setName(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Child name" required />
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Age</span>
-            <input type="number" value={ageInput} onChange={(event) => setAgeInput(event.target.value)} min={1} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Age" required />
+            <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Birthday</span>
+            <input type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} max={new Date().toISOString().slice(0, 10)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" required />
           </label>
           <label className="block">
             <span className="text-sm font-extrabold text-slate-600 dark:text-slate-200">Gender</span>
@@ -58,7 +64,7 @@ export function AddChildModal({ open, onClose }: { open: boolean; onClose: () =>
         <div className="mt-2 grid grid-cols-5 gap-2">
           {avatars.map((item) => <button key={item} type="button" onClick={() => setAvatar(item)} className={`h-12 rounded-2xl text-2xl ${avatar === item ? "bg-blueberry text-white" : "bg-slate-100 dark:bg-slate-700"}`}>{item}</button>)}
         </div>
-        <button className="mt-5 h-13 min-h-12 w-full rounded-2xl bg-blueberry px-5 py-3 text-base font-black text-white shadow-soft">Save child</button>
+        <button disabled={saving} className="mt-5 h-13 min-h-12 w-full rounded-2xl bg-blueberry px-5 py-3 text-base font-black text-white shadow-soft disabled:opacity-60">{saving ? "Saving" : "Save child"}</button>
       </form>
     </div>
   );

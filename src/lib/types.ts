@@ -4,7 +4,7 @@ export type Child = {
   id: string;
   name: string;
   avatar: string;
-  age: number;
+  birthday: string;
   gender: "boy" | "girl" | "other";
   bio?: string;
   points: number;

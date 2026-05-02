@@ -17,6 +17,7 @@ export default function ResetPasswordPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (loading) return;
     setError("");
 
     if (password !== confirmPassword) {

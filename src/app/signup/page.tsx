@@ -16,6 +16,7 @@ export default function SignUpPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (loading) return;
     setError("");
     setLoading(true);
 

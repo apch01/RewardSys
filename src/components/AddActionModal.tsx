@@ -18,6 +18,7 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
   const [feedback, setFeedback] = useState<{ points: number; title: string; id: number } | null>(null);
   const [pinAttempt, setPinAttempt] = useState("");
   const [unlocked, setUnlocked] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   function parsePoints(input: string) {
     const parsed = Number(input);
@@ -85,30 +86,42 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
 
   async function record(template: BehaviourTemplate) {
     if (!child) return;
-    const created = await addAction({ childId: child.id, title: template.title, type: template.type, points: template.points, note: note.trim() || undefined });
-    const points = created?.points ?? 0;
-    setLastPoints(points);
-    setFeedback({ points, title: template.title, id: Date.now() });
-    if (navigator.vibrate) navigator.vibrate(points < 0 ? [35, 30, 35] : 35);
-    setNote("");
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const created = await addAction({ childId: child.id, title: template.title, type: template.type, points: template.points, note: note.trim() || undefined });
+      const points = created?.points ?? 0;
+      setLastPoints(points);
+      setFeedback({ points, title: template.title, id: Date.now() });
+      if (navigator.vibrate) navigator.vibrate(points < 0 ? [35, 30, 35] : 35);
+      setNote("");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function submitCustom(event: FormEvent) {
     event.preventDefault();
     if (!child) return;
+    if (submitting) return;
     if (!customTitle.trim()) return;
-    const basePoints = parsePoints(customPointsInput);
-    const points = tab === "negative" ? -basePoints : basePoints;
-    const created = await addAction({ childId: child.id, title: customTitle.trim(), type: tab, points, note: note.trim() || undefined });
-    if (saveCustom) await addCustomAction({ title: customTitle.trim(), category: tab, points, note: note.trim() || undefined });
-    const appliedPoints = created?.points ?? points;
-    setFeedback({ points: appliedPoints, title: customTitle.trim(), id: Date.now() });
-    if (navigator.vibrate) navigator.vibrate(appliedPoints < 0 ? [35, 30, 35] : 35);
-    setCustomTitle("");
-    setCustomPointsInput("10");
-    setNote("");
-    setSaveCustom(false);
-    setLastPoints(appliedPoints);
+    setSubmitting(true);
+    try {
+      const basePoints = parsePoints(customPointsInput);
+      const points = tab === "negative" ? -basePoints : basePoints;
+      const created = await addAction({ childId: child.id, title: customTitle.trim(), type: tab, points, note: note.trim() || undefined });
+      if (saveCustom) await addCustomAction({ title: customTitle.trim(), category: tab, points, note: note.trim() || undefined });
+      const appliedPoints = created?.points ?? points;
+      setFeedback({ points: appliedPoints, title: customTitle.trim(), id: Date.now() });
+      if (navigator.vibrate) navigator.vibrate(appliedPoints < 0 ? [35, 30, 35] : 35);
+      setCustomTitle("");
+      setCustomPointsInput("10");
+      setNote("");
+      setSaveCustom(false);
+      setLastPoints(appliedPoints);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function feedbackText(points: number) {
@@ -149,12 +162,12 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
         {tab === "negative" && tooManyCorrections ? <div className="mb-3 rounded-2xl bg-peach px-4 py-3 text-sm font-black text-amber-900 dark:bg-orange-950 dark:text-orange-100">Pause check: this is several corrections today. Try adding three positive recognitions before another correction.</div> : null}
         {ratio < 3 && childActions.some((action) => action.type === "negative") ? <div className="mb-3 rounded-2xl bg-sunshine px-4 py-3 text-sm font-black text-slate-700 dark:bg-amber-900/40 dark:text-amber-100">Fairness nudge: the current positive-to-correction ratio is below 3:1.</div> : null}
         <div className="grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-700">
-          {(["positive", "negative", "repair"] as ActionType[]).map((item) => <button key={item} onClick={() => setTab(item)} className={cn("min-h-11 rounded-xl text-sm font-black capitalize", tab === item ? "bg-white text-blueberry shadow-sm dark:bg-slate-900 dark:text-sky-300" : "text-slate-500 dark:text-slate-300")}>{item}</button>)}
+          {(["positive", "negative", "repair"] as ActionType[]).map((item) => <button key={item} disabled={submitting} onClick={() => setTab(item)} className={cn("min-h-11 rounded-xl text-sm font-black capitalize disabled:opacity-60", tab === item ? "bg-white text-blueberry shadow-sm dark:bg-slate-900 dark:text-sky-300" : "text-slate-500 dark:text-slate-300")}>{item}</button>)}
         </div>
         {tab === "negative" ? <p className="mt-3 text-sm font-bold text-slate-500 dark:text-slate-300">Corrections use orange language, never punish emotions, and suggest repair actions right away.</p> : null}
         <textarea value={note} onChange={(event) => setNote(event.target.value)} className="mt-4 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional parent note" />
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          {templates.map((template) => <button key={`${template.title}-${template.points}`} onClick={() => record(template)} className={cn("flex min-h-14 items-center justify-between rounded-2xl px-4 py-3 text-left font-black transition hover:scale-[1.01]", template.type === "negative" ? "bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" : template.type === "repair" ? "bg-sunshine text-slate-800 dark:bg-amber-900/40 dark:text-amber-100" : "bg-mint text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100")}>
+          {templates.map((template) => <button key={`${template.title}-${template.points}`} disabled={submitting} onClick={() => record(template)} className={cn("flex min-h-14 items-center justify-between rounded-2xl px-4 py-3 text-left font-black transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60", template.type === "negative" ? "bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" : template.type === "repair" ? "bg-sunshine text-slate-800 dark:bg-amber-900/40 dark:text-amber-100" : "bg-mint text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100")}>
             <span className="flex items-center gap-2"><span className="text-xl">{template.emoji}</span>{template.title}</span>
             <span>{template.points > 0 ? "+" : ""}{template.points}</span>
           </button>)}
@@ -166,7 +179,7 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
             <input type="number" value={customPointsInput} onChange={(event) => setCustomPointsInput(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800" />
           </div>
           <label className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-200"><input type="checkbox" checked={saveCustom} onChange={(event) => setSaveCustom(event.target.checked)} className="h-5 w-5 rounded" /> Save as reusable action</label>
-          <button className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white"><Check className="h-5 w-5" /> Add custom action</button>
+          <button disabled={submitting} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60"><Check className="h-5 w-5" /> {submitting ? "Saving" : "Add custom action"}</button>
         </form>
           </>
         )}

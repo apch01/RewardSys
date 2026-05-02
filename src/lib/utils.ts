@@ -11,6 +11,23 @@ export function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+export function ageFromBirthday(birthday: string) {
+  if (!birthday) return null;
+  const [yearStr, monthStr, dayStr] = birthday.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const monthDiff = today.getMonth() + 1 - month;
+  const dayDiff = today.getDate() - day;
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) age -= 1;
+  if (age < 0 || age > 130) return null;
+  return age;
+}
+
 export function childLevel(points: number) {
   if (points >= 500) return "Kindness Captain";
   if (points >= 300) return "Teamwork Trailblazer";
