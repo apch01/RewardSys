@@ -4,6 +4,11 @@ import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { Copy, Download, KeyRound, Link2, MessageSquare, Moon, Send, Shield, Target } from "lucide-react";
 import { useKindPoints } from "@/lib/store";
 
+type ChildLevelDraft = {
+  title: string;
+  minPointsInput: string;
+};
+
 const reportEmail = "my.kind.points@gmail.com";
 
 type NavigatorWithStandalone = Navigator & { standalone?: boolean };
@@ -35,6 +40,12 @@ export default function SettingsPage() {
   const [goalEnabledDraft, setGoalEnabledDraft] = useState(data.settings.familyGoalEnabled);
   const [goalTitleDraft, setGoalTitleDraft] = useState(data.settings.familyGoalTitle);
   const [goalTargetDraft, setGoalTargetDraft] = useState(String(data.settings.familyGoalTarget));
+  const [childLevelsDraft, setChildLevelsDraft] = useState<ChildLevelDraft[]>(
+    data.settings.childLevels.map((level) => ({
+      title: level.title,
+      minPointsInput: String(level.minPoints)
+    }))
+  );
   const [goalMessage, setGoalMessage] = useState("");
   const [joiningFamily, setJoiningFamily] = useState(false);
   const [revokingSecret, setRevokingSecret] = useState(false);
@@ -53,7 +64,11 @@ export default function SettingsPage() {
     setGoalEnabledDraft(data.settings.familyGoalEnabled);
     setGoalTitleDraft(data.settings.familyGoalTitle);
     setGoalTargetDraft(String(data.settings.familyGoalTarget));
-  }, [data.settings.allowNegativeBalance, data.settings.dailyNegativeLimit, data.settings.perIncidentNegativeLimit, data.settings.familyGoalEnabled, data.settings.familyGoalTitle, data.settings.familyGoalTarget]);
+    setChildLevelsDraft(data.settings.childLevels.map((level) => ({
+      title: level.title,
+      minPointsInput: String(level.minPoints)
+    })));
+  }, [data.settings.allowNegativeBalance, data.settings.dailyNegativeLimit, data.settings.perIncidentNegativeLimit, data.settings.familyGoalEnabled, data.settings.familyGoalTitle, data.settings.familyGoalTarget, data.settings.childLevels]);
 
   useEffect(() => {
     const ua = window.navigator.userAgent.toLowerCase();
@@ -162,13 +177,23 @@ export default function SettingsPage() {
       await updateSettings({
         familyGoalEnabled: goalEnabledDraft,
         familyGoalTitle: goalTitleDraft.trim() || data.settings.familyGoalTitle,
-        familyGoalTarget: parsePositiveNumber(goalTargetDraft, data.settings.familyGoalTarget)
+        familyGoalTarget: parsePositiveNumber(goalTargetDraft, data.settings.familyGoalTarget),
+        childLevels: childLevelsDraft
+          .map((level) => ({
+            title: level.title.trim() || "Level",
+            minPoints: Math.max(0, Math.round(Number(level.minPointsInput) || 0))
+          }))
+          .sort((a, b) => b.minPoints - a.minPoints)
       });
       setGoalMessage("Family goal saved");
       window.setTimeout(() => setGoalMessage(""), 1800);
     } finally {
       setSavingGoal(false);
     }
+  }
+
+  function updateChildLevel(index: number, next: Partial<ChildLevelDraft>) {
+    setChildLevelsDraft((prev) => prev.map((level, levelIndex) => levelIndex === index ? { ...level, ...next } : level));
   }
 
   async function installApp() {
@@ -267,7 +292,31 @@ export default function SettingsPage() {
           <input value={goalTitleDraft} disabled={!goalEnabledDraft} onChange={(event) => setGoalTitleDraft(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900" />
         </label>
         <NumberField label="Target points" value={goalTargetDraft} disabled={!goalEnabledDraft} onChange={(event) => setGoalTargetDraft(event.target.value)} />
-        <button type="button" disabled={savingGoal} onClick={saveGoal} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingGoal ? "Saving" : "Save family goal"}</button>
+        <div className="mt-4 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+          <h3 className="text-sm font-black uppercase tracking-wide text-slate-500 dark:text-slate-300">Child level defaults</h3>
+          <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-300">Edit level titles and points required.</p>
+          <div className="mt-3 space-y-3">
+            {childLevelsDraft.map((level, index) => (
+              <div key={`${index}-${level.title}`} className="grid gap-2 sm:grid-cols-[1fr_140px]">
+                <input
+                  value={level.title}
+                  onChange={(event) => updateChildLevel(index, { title: event.target.value })}
+                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800"
+                  placeholder="Level title"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  value={level.minPointsInput}
+                  onChange={(event) => updateChildLevel(index, { minPointsInput: event.target.value })}
+                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800"
+                  placeholder="Points"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        <button type="button" disabled={savingGoal} onClick={saveGoal} className="mt-4 min-h-12 w-full rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60">{savingGoal ? "Saving" : "Save goal and levels"}</button>
         {goalMessage ? <p className="mt-3 rounded-2xl bg-mint px-4 py-3 text-sm font-black text-leaf dark:bg-emerald-950 dark:text-emerald-100">{goalMessage}</p> : null}
       </section>
 

@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { isAfter, startOfDay, startOfWeek } from "date-fns";
 import { twMerge } from "tailwind-merge";
-import { Action, ActionType, Child, Reward } from "./types";
+import { Action, ActionType, Child, ChildLevel, Reward } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -28,12 +28,19 @@ export function ageFromBirthday(birthday: string) {
   return age;
 }
 
-export function childLevel(points: number) {
-  if (points >= 500) return "Kindness Captain";
-  if (points >= 300) return "Teamwork Trailblazer";
-  if (points >= 150) return "Growth Guide";
-  if (points >= 75) return "Sharing Star";
-  return "Kindness Sprout";
+const fallbackChildLevels: ChildLevel[] = [
+  { title: "Kindness Captain", minPoints: 500 },
+  { title: "Teamwork Trailblazer", minPoints: 300 },
+  { title: "Growth Guide", minPoints: 150 },
+  { title: "Sharing Star", minPoints: 75 },
+  { title: "Kindness Sprout", minPoints: 0 }
+];
+
+export function childLevel(points: number, levels?: ChildLevel[]) {
+  const source = (levels?.length ? levels : fallbackChildLevels)
+    .filter((level) => Number.isFinite(level.minPoints))
+    .sort((a, b) => b.minPoints - a.minPoints);
+  return source.find((level) => points >= level.minPoints)?.title ?? "Kindness Sprout";
 }
 
 export function actionsForChild(actions: Action[], childId: string) {

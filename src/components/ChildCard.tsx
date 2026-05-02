@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { Award, Gift, TrendingUp } from "lucide-react";
-import { Action, Child, Reward } from "@/lib/types";
+import { Action, Child, ChildLevel, Reward } from "@/lib/types";
 import { actionsForChild, ageFromBirthday, availableRewards, childLevel, positiveStreak, todayPoints, weeklyPoints } from "@/lib/utils";
 import { ProgressBar } from "./ProgressBar";
 
-export function ChildCard({ child, actions, rewards }: { child: Child; actions: Action[]; rewards: Reward[] }) {
+export function ChildCard({ child, actions, rewards, levels }: { child: Child; actions: Action[]; rewards: Reward[]; levels?: ChildLevel[] }) {
   const childActions = actionsForChild(actions, child.id);
   const nextReward = rewards.filter((reward) => !reward.redeemed && reward.cost > child.points).sort((a, b) => a.cost - b.cost)[0];
   const progress = nextReward ? (child.points / nextReward.cost) * 100 : 100;
@@ -19,7 +19,7 @@ export function ChildCard({ child, actions, rewards }: { child: Child; actions: 
           <div className="grid h-16 w-16 place-items-center rounded-3xl bg-skywash text-4xl dark:bg-slate-700">{child.avatar}</div>
           <div>
             <h2 className="text-xl font-black">{child.name}</h2>
-            <p className="text-sm font-bold text-slate-500 dark:text-slate-300">{childLevel(child.points)}</p>
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-300">{childLevel(child.points, levels)}</p>
             <p className="text-xs font-extrabold uppercase text-slate-400 dark:text-slate-400">{age !== null ? `Age ${age}` : "Age not set"} • {child.gender}</p>
             {child.bio ? <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-300">{child.bio}</p> : null}
           </div>

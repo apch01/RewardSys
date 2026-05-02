@@ -58,7 +58,7 @@ export default function HomePage() {
           <h2 className="text-xl font-black">Children</h2>
           <button onClick={() => setAddChildOpen(true)} className="flex min-h-11 items-center gap-2 rounded-2xl bg-blueberry px-4 py-2 font-black text-white shadow-soft"><Plus className="h-5 w-5" /> Add</button>
         </div>
-        {data.children.length ? <div className="grid gap-4 sm:grid-cols-2">{data.children.map((child) => <div key={child.id} className="space-y-2"><ChildCard child={child} actions={data.actions} rewards={data.rewards} /><button onClick={() => setActionChild(child)} className="min-h-12 w-full rounded-2xl bg-slate-900 px-4 py-3 font-black text-white dark:bg-white dark:text-slate-900">Record action</button></div>)}</div> : <EmptyState title="Add your first child" text="KindPoints starts with one child and one positive moment." />}
+        {data.children.length ? <div className="grid gap-4 sm:grid-cols-2">{data.children.map((child) => <div key={child.id} className="space-y-2"><ChildCard child={child} actions={data.actions} rewards={data.rewards} levels={data.settings.childLevels} /><button onClick={() => setActionChild(child)} className="min-h-12 w-full rounded-2xl bg-slate-900 px-4 py-3 font-black text-white dark:bg-white dark:text-slate-900">Record action</button></div>)}</div> : <EmptyState title="Add your first child" text="KindPoints starts with one child and one positive moment." />}
       </section>
 
       <section>

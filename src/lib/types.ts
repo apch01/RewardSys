@@ -1,5 +1,10 @@
 export type ActionType = "positive" | "negative" | "repair";
 
+export type ChildLevel = {
+  title: string;
+  minPoints: number;
+};
+
 export type Child = {
   id: string;
   name: string;
@@ -48,6 +53,7 @@ export type Settings = {
   allowNegativeBalance: boolean;
   dailyNegativeLimit: number;
   perIncidentNegativeLimit: number;
+  childLevels: ChildLevel[];
   familyGoalEnabled: boolean;
   familyGoalTitle: string;
   familyGoalTarget: number;

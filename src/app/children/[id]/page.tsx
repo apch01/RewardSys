@@ -96,7 +96,7 @@ export default function ChildProfilePage() {
           <>
             <div className="mx-auto grid h-24 w-24 place-items-center rounded-[2rem] bg-skywash text-6xl dark:bg-slate-700">{child.avatar}</div>
             <h1 className="mt-3 text-3xl font-black">{child.name}</h1>
-            <p className="font-bold text-slate-500 dark:text-slate-300">{childLevel(child.points)}</p>
+            <p className="font-bold text-slate-500 dark:text-slate-300">{childLevel(child.points, data.settings.childLevels)}</p>
             <p className="text-sm font-extrabold uppercase text-slate-400 dark:text-slate-400">{age !== null ? `Age ${age}` : "Age not set"} • {child.gender}</p>
             {child.bio ? <p className="mt-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-200">{child.bio}</p> : null}
             <div className="mt-4 text-5xl font-black text-blueberry dark:text-sky-300">{child.points}</div>

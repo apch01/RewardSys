@@ -55,6 +55,13 @@ export const defaultSettings: Settings = {
   allowNegativeBalance: false,
   dailyNegativeLimit: 30,
   perIncidentNegativeLimit: 20,
+  childLevels: [
+    { title: "Kindness Captain", minPoints: 500 },
+    { title: "Teamwork Trailblazer", minPoints: 300 },
+    { title: "Growth Guide", minPoints: 150 },
+    { title: "Sharing Star", minPoints: 75 },
+    { title: "Kindness Sprout", minPoints: 0 }
+  ],
   familyGoalEnabled: true,
   familyGoalTitle: "Family movie night",
   familyGoalTarget: 500,

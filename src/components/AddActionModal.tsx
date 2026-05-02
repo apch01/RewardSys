@@ -165,14 +165,7 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
           {(["positive", "negative", "repair"] as ActionType[]).map((item) => <button key={item} disabled={submitting} onClick={() => setTab(item)} className={cn("min-h-11 rounded-xl text-sm font-black capitalize disabled:opacity-60", tab === item ? "bg-white text-blueberry shadow-sm dark:bg-slate-900 dark:text-sky-300" : "text-slate-500 dark:text-slate-300")}>{item}</button>)}
         </div>
         {tab === "negative" ? <p className="mt-3 text-sm font-bold text-slate-500 dark:text-slate-300">Corrections use orange language, never punish emotions, and suggest repair actions right away.</p> : null}
-        <textarea value={note} onChange={(event) => setNote(event.target.value)} className="mt-4 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional parent note" />
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          {templates.map((template) => <button key={`${template.title}-${template.points}`} disabled={submitting} onClick={() => record(template)} className={cn("flex min-h-14 items-center justify-between rounded-2xl px-4 py-3 text-left font-black transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60", template.type === "negative" ? "bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" : template.type === "repair" ? "bg-sunshine text-slate-800 dark:bg-amber-900/40 dark:text-amber-100" : "bg-mint text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100")}>
-            <span className="flex items-center gap-2"><span className="text-xl">{template.emoji}</span>{template.title}</span>
-            <span>{template.points > 0 ? "+" : ""}{template.points}</span>
-          </button>)}
-        </div>
-        <form onSubmit={submitCustom} className="mt-5 rounded-3xl bg-slate-50 p-4 dark:bg-slate-900">
+        <form onSubmit={submitCustom} className="mt-4 rounded-3xl bg-slate-50 p-4 dark:bg-slate-900">
           <h3 className="font-black">Custom behaviour</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_120px]">
             <input value={customTitle} onChange={(event) => setCustomTitle(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-800" placeholder="Title" />
@@ -181,6 +174,13 @@ export function AddActionModal({ open, child, onClose }: { open: boolean; child?
           <label className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-200"><input type="checkbox" checked={saveCustom} onChange={(event) => setSaveCustom(event.target.checked)} className="h-5 w-5 rounded" /> Save as reusable action</label>
           <button disabled={submitting} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blueberry px-4 py-3 font-black text-white disabled:opacity-60"><Check className="h-5 w-5" /> {submitting ? "Saving" : "Add custom action"}</button>
         </form>
+        <textarea value={note} onChange={(event) => setNote(event.target.value)} className="mt-4 min-h-20 w-full rounded-2xl border border-slate-200 bg-white p-3 font-bold outline-none focus:border-blueberry dark:border-slate-600 dark:bg-slate-900" placeholder="Optional parent note" />
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {templates.map((template) => <button key={`${template.title}-${template.points}`} disabled={submitting} onClick={() => record(template)} className={cn("flex min-h-14 items-center justify-between rounded-2xl px-4 py-3 text-left font-black transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60", template.type === "negative" ? "bg-peach text-amber-950 dark:bg-orange-950 dark:text-orange-100" : template.type === "repair" ? "bg-sunshine text-slate-800 dark:bg-amber-900/40 dark:text-amber-100" : "bg-mint text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100")}>
+            <span className="flex items-center gap-2"><span className="text-xl">{template.emoji}</span>{template.title}</span>
+            <span>{template.points > 0 ? "+" : ""}{template.points}</span>
+          </button>)}
+        </div>
           </>
         )}
       </div>

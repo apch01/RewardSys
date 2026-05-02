@@ -24,6 +24,16 @@ type FamilyMutationResult = {
   created?: Action;
 };
 
+function normalizeChildLevels(levels: AppData["settings"]["childLevels"] | undefined) {
+  const source = Array.isArray(levels) && levels.length ? levels : defaultSettings.childLevels;
+  return source
+    .map((level) => ({
+      title: (level.title || "").trim() || "Level",
+      minPoints: Number.isFinite(level.minPoints) ? Math.max(0, Math.round(level.minPoints)) : 0
+    }))
+    .sort((a, b) => b.minPoints - a.minPoints);
+}
+
 export function normalizeData(data: Partial<AppData> | null | undefined): AppData {
   return {
     children: (data?.children ?? []).map((child) => ({
@@ -38,6 +48,7 @@ export function normalizeData(data: Partial<AppData> | null | undefined): AppDat
     settings: {
       ...defaultSettings,
       ...(data?.settings ?? {}),
+      childLevels: normalizeChildLevels(data?.settings?.childLevels),
       defaultPointValues: {
         ...defaultSettings.defaultPointValues,
         ...(data?.settings?.defaultPointValues ?? {})
